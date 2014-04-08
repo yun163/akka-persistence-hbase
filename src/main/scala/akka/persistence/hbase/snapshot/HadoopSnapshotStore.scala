@@ -10,18 +10,33 @@ class HadoopSnapshotStore extends SnapshotStore with ActorLogging {
 
   val snap = HadoopSnapshotterExtensionId(context.system)
 
-  def loadAsync(processorId: String, criteria: SnapshotSelectionCriteria): Future[Option[SelectedSnapshot]] =
+  def loadAsync(processorId: String, criteria: SnapshotSelectionCriteria): Future[Option[SelectedSnapshot]] = {
+    System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>loadAsync<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
     snap.loadAsync(processorId, criteria)
+  }
 
-  def saveAsync(metadata: SnapshotMetadata, snapshot: Any): Future[Unit] =
+  def saveAsync(metadata: SnapshotMetadata, snapshot: Any): Future[Unit] = {
+    System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>saveAsync<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
     snap.saveAsync(metadata, snapshot)
+  }
 
-  def saved(metadata: SnapshotMetadata): Unit =
+  def saved(metadata: SnapshotMetadata): Unit = {
+    System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>saved<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
     snap.saved(metadata)
+  }
 
-  def delete(metadata: SnapshotMetadata): Unit =
+  def delete(metadata: SnapshotMetadata): Unit = {
+    System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>delete<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
     snap.delete(metadata)
+  }
 
-  def delete(processorId: String, criteria: SnapshotSelectionCriteria): Unit =
+  def delete(processorId: String, criteria: SnapshotSelectionCriteria): Unit = {
+    System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>delete1<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
     snap.delete(processorId, criteria)
+  }
+
+  override def postStop(): Unit = {
+    super.postStop()
+    snap.postStop()
+  }
 }

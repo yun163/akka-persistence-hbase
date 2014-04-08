@@ -8,6 +8,7 @@ import com.google.common.base.Stopwatch
 import concurrent.duration._
 import java.util.concurrent.TimeUnit
 import akka.persistence.hbase.common.TestingEventProtocol._
+import akka.persistence.hbase.common.Const._
 
 object SimplePerfSpec {
 
@@ -30,12 +31,12 @@ class SimplePerfSpec extends TestKit(ActorSystem("test")) with FlatSpecLike
 
   import SimplePerfSpec._
 
-  val config = system.settings.config.getConfig("hbase-journal")
+  val config = system.settings.config.getConfig(JOURNAL_CONFIG)
 
   behavior of "HBaseJournal"
 
   override protected def beforeAll() {
-    HBaseJournalInit.createTable(config)
+    HBaseJournalInit.createTable(config, JOURNAL_CONFIG)
   }
 
   val messagesNr = 80000

@@ -1,7 +1,6 @@
 package akka.persistence.hbase.journal
 
 import com.typesafe.config.Config
-import org.apache.hadoop.conf.Configuration
 
 /**
  *
@@ -23,25 +22,23 @@ case class PluginPersistenceSettings(
   replayDispatcherId: String,
   publishTestingEvents: Boolean,
   snapshotHdfsDir: String,
-  hadoopConfiguration: Configuration
+  hdfsDefaultName:String
 )
 
 object PluginPersistenceSettings {
-  def apply(rootConfig: Config): PluginPersistenceSettings = {
-    val journalConfig = rootConfig.getConfig("hbase-journal")
-    val snapshotConfig = rootConfig.getConfig("hadoop-snapshot-store")
-
+  def apply(rootConfig: Config, persistenceConf: String): PluginPersistenceSettings = {
+    val persistenceConfig = rootConfig.getConfig(persistenceConf)
     PluginPersistenceSettings(
-      zookeeperQuorum      = journalConfig.getString("hbase.zookeeper.quorum"),
-      table                = journalConfig.getString("table"),
-      family               = journalConfig.getString("family"),
-      partitionCount       = journalConfig.getInt("partition.count"),
-      scanBatchSize        = journalConfig.getInt("scan-batch-size"),
-      pluginDispatcherId   = journalConfig.getString("plugin-dispatcher"),
-      replayDispatcherId   = journalConfig.getString("replay-dispatcher"),
-      publishTestingEvents = journalConfig.getBoolean("publish-testing-events"),
-      snapshotHdfsDir      = snapshotConfig.getString("snapshot-dir"),
-      hadoopConfiguration  = HBaseJournalInit.getHBaseConfig(rootConfig)
+      zookeeperQuorum      = persistenceConfig.getString("hbase.zookeeper.quorum"),
+      table                = persistenceConfig.getString("table"),
+      family               = persistenceConfig.getString("family"),
+      partitionCount       = persistenceConfig.getInt("partition.count"),
+      scanBatchSize        = persistenceConfig.getInt("scan-batch-size"),
+      pluginDispatcherId   = persistenceConfig.getString("plugin-dispatcher"),
+      replayDispatcherId   = persistenceConfig.getString("replay-dispatcher"),
+      publishTestingEvents = persistenceConfig.getBoolean("publish-testing-events"),
+      snapshotHdfsDir      = persistenceConfig.getString("snapshot-dir"),
+      hdfsDefaultName      = persistenceConfig.getString("hdfs-default-name")
     )
   }
 }

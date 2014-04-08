@@ -6,19 +6,16 @@ import org.apache.hadoop.hbase.util.Bytes
 import scala.concurrent.{ExecutionContext, Future}
 import scala.Array
 import akka.persistence.hbase.journal.RowTypeMarkers._
-import akka.persistence.hbase.common.Columns._
-import akka.persistence.hbase.journal.PluginPersistenceSettings
 
 trait AsyncBaseUtils {
-
-  def hBasePersistenceSettings: PluginPersistenceSettings
 
   def client: HBaseClient
 
   implicit val executionContext: ExecutionContext
-
-  private lazy val Table = Bytes.toBytes(hBasePersistenceSettings.table)
-  private lazy val Family = Bytes.toBytes(hBasePersistenceSettings.family)
+  def getTable: String
+  def Table = Bytes.toBytes(getTable)
+  def getFamily: String
+  def Family = Bytes.toBytes(getFamily)
 
   import Columns._
   import DeferredConversions._

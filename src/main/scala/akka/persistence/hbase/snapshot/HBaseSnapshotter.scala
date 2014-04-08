@@ -12,17 +12,18 @@ import collection.JavaConverters._
 import java.util. { ArrayList => JArrayList }
 import scala.collection.immutable
 import akka.persistence.serialization.Snapshot
-import akka.serialization.SerializationExtension
-import scala.util.{Failure, Success, Try}
+import scala.util.{Failure, Success}
 import akka.persistence.hbase.common.TestingEventProtocol.DeletedSnapshotsFor
 
-class HBaseSnapshotter(val system: ActorSystem, val hBasePersistenceSettings: PluginPersistenceSettings, val client: HBaseClient)
-  extends HadoopSnapshotter
+class HBaseSnapshotter(val system: ActorSystem, val pluginPersistenceSettings: PluginPersistenceSettings, val client: HBaseClient) extends HadoopSnapshotter
   with AsyncBaseUtils with DeferredConversions {
 
   val log = system.log
 
-  implicit val settings = hBasePersistenceSettings
+  implicit val settings = pluginPersistenceSettings
+
+  override def getTable =  settings.table
+  override def getFamily =  settings.family
 
   implicit override val executionContext = system.dispatchers.lookup("akka-hbase-persistence-dispatcher")
 
@@ -41,10 +42,11 @@ class HBaseSnapshotter(val system: ActorSystem, val hBasePersistenceSettings: Pl
 
     val start = RowKey.firstForProcessor(processorId)
     val stop = RowKey(processorId, maxSequenceNr)
-
+    log.debug("Loading async for processorId: [{}] start: {}, end: {}", processorId, start.toKeyString, stop.toKeyString)
     scanner.setStartKey(start.toBytes)
     scanner.setStopKey(stop.toBytes)
     scanner.setKeyRegexp(RowKey.patternForProcessor(processorId))
+    log.debug("Loading async for processorId: [{}] keyRegexp: {}", processorId, RowKey.patternForProcessor(processorId))
 
     val promise = Promise[Option[SelectedSnapshot]]()
 
@@ -86,8 +88,8 @@ class HBaseSnapshotter(val system: ActorSystem, val hBasePersistenceSettings: Pl
       case Success(serializedSnapshot) =>
         executePut(
           RowKey(meta.processorId, meta.sequenceNr).toBytes,
-          Array(Marker,              Message),
-          Array(SnapshotMarkerBytes, serializedSnapshot)
+          Array(Marker,  SequenceNr, Message),
+          Array(SnapshotMarkerBytes, toBytes(meta.sequenceNr), serializedSnapshot)
         )
 
       case Failure(ex) =>
@@ -140,6 +142,10 @@ class HBaseSnapshotter(val system: ActorSystem, val hBasePersistenceSettings: Pl
     go() map {
       case _ if settings.publishTestingEvents => system.eventStream.publish(DeletedSnapshotsFor(processorId, criteria))
     }
+  }
+
+  override def postStop(): Unit = {
+    client.shutdown()
   }
 
 }

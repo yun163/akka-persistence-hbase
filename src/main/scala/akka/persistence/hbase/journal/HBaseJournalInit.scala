@@ -16,11 +16,11 @@ object HBaseJournalInit {
    *
    * @return true if a modification was run on hbase (table created or family added)
    */
-  def createTable(config: Config): Boolean = {
-    val conf = getHBaseConfig(config)
+  def createTable(config: Config, persistentConfig: String): Boolean = {
+    val conf = getHBaseConfig(config, persistentConfig)
     val admin = new HBaseAdmin(conf)
 
-    val journalConfig = config.getConfig("hbase-journal")
+    val journalConfig = config.getConfig(persistentConfig)
     val table = journalConfig.getString("table")
     val familyName = journalConfig.getString("family")
 
@@ -41,7 +41,6 @@ object HBaseJournalInit {
     } else {
       val tableDesc = new HTableDescriptor(toBytes(tableName))
       tableDesc.addFamily(new HColumnDescriptor(familyName))
-
       admin.createTable(tableDesc)
       true
     }
@@ -51,12 +50,12 @@ object HBaseJournalInit {
   /**
    * Construct Configuration, passing in all `hbase.*` keys from the typesafe Config.
    */
-  def getHBaseConfig(config: Config): Configuration = {
+  def getHBaseConfig(config: Config, persistenceConfig: String): Configuration = {
     val c = new Configuration()
     @inline def hbaseKey(s: String) = "hbase." + s
 
-    val journalConfig = config.getConfig("hbase-journal")
-    val hbaseConfig = journalConfig.getConfig("hbase")
+    val persistenseConfig = config.getConfig(persistenceConfig)
+    val hbaseConfig = persistenseConfig.getConfig("hbase")
 
     // todo does not cover all cases
     hbaseConfig.entrySet().asScala foreach { e =>

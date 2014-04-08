@@ -3,8 +3,7 @@ package akka.persistence.hbase.journal
 import akka.persistence.PersistentRepr
 import akka.actor.{ActorLogging, Actor}
 import scala.concurrent.Future
-import org.hbase.async.{KeyValue, HBaseClient}
-import java.{util => ju}
+import org.hbase.async.KeyValue
 import scala.collection.mutable
 import org.apache.hadoop.hbase.util.Bytes
 import akka.persistence.journal._
@@ -13,14 +12,6 @@ import scala.annotation.switch
 
 trait HBaseAsyncRecovery extends AsyncRecovery {
   this: Actor with ActorLogging with HBaseAsyncWriteJournal =>
-
-  private[persistence] def client: HBaseClient
-
-  private[persistence] implicit def hBasePersistenceSettings: PluginPersistenceSettings
-
-  private lazy val replayDispatcherId = hBasePersistenceSettings.replayDispatcherId
-
-  override implicit val executionContext = context.system.dispatchers.lookup(replayDispatcherId)
 
   import Columns._
   import RowTypeMarkers._
@@ -45,12 +36,12 @@ trait HBaseAsyncRecovery extends AsyncRecovery {
 
     def handleRows(in: AnyRef): Future[Long] = in match {
       case null =>
-        log.debug("replayAsync - finished!")
+        log.debug(s"replayAsync for processorId [$processorId] - finished!")
         scanner.close()
         Future(0L)
 
       case rows: AsyncBaseRows =>
-        log.debug(s"replayAsync - got ${rows.size} rows...")
+        log.debug(s"replayAsync for processorId [$processorId] - got ${rows.size} rows...")
 
         val seqNrs = for {
           row <- rows.asScala

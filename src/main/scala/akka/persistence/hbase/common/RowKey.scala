@@ -8,7 +8,7 @@ case class RowKey(processorId: String, sequenceNr: Long)(implicit hBasePersisten
   def part = partition(sequenceNr)
   val toBytes = Bytes.toBytes(toKeyString)
 
-  def toKeyString = s"${padded(part, 3)}-$processorId-${padded(sequenceNr, 20)}"
+  def toKeyString = s"${padded(part, 3)}~$processorId~${padded(sequenceNr, 20)}"
 
   @inline def padded(l: Long, howLong: Int) =
     String.valueOf(l).reverse.padTo(howLong, "0").reverse.mkString
@@ -23,7 +23,7 @@ object RowKey {
    * Since we're salting (prefixing) the entries with partition numbers,
    * we must use this pattern for scanning for "all messages for processorX"
    */
-  def patternForProcessor(processorId: String)(implicit journalConfig: PluginPersistenceSettings) = s""".*-$processorId-.*"""
+  def patternForProcessor(processorId: String)(implicit journalConfig: PluginPersistenceSettings) = s""".*~$processorId~.*"""
 
   /** First key possible, similar to: `0-id-000000000000000000000` */
   def firstForProcessor(processorId: String)(implicit journalConfig: PluginPersistenceSettings) =
@@ -31,5 +31,5 @@ object RowKey {
 
   /** Last key possible, similar to: `999-id-Long.MaxValue` */
   def lastForProcessor(processorId: String)(implicit journalConfig: PluginPersistenceSettings) =
-    RowKey(processorId, 0)
+    RowKey(processorId, Long.MaxValue)
 }

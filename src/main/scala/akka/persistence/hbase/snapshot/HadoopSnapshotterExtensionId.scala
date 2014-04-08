@@ -1,15 +1,15 @@
 package akka.persistence.hbase.snapshot
 
 import akka.actor._
-import akka.persistence.hbase.journal.{PluginPersistenceSettings, HBaseClientFactory, HBaseJournalInit}
+import akka.persistence.hbase.journal.{PluginPersistenceSettings, HBaseClientFactory}
 import akka.persistence.PersistenceSettings
+import akka.persistence.hbase.common.Const._
 import scala.Predef._
-import org.apache.hadoop.conf.Configuration
 
 object HadoopSnapshotterExtensionId extends ExtensionId[HadoopSnapshotter]
   with ExtensionIdProvider {
 
-  val SnapshotStoreImplKey = "hadoop-snapshot-store.impl"
+  val SnapshotStoreImplKey = SNAPSHOT_CONFIG + ".impl"
 
   override def lookup() = HadoopSnapshotterExtensionId
 
@@ -17,10 +17,10 @@ object HadoopSnapshotterExtensionId extends ExtensionId[HadoopSnapshotter]
     val config = system.settings.config
     val snapshotterImpl = config.getString(SnapshotStoreImplKey)
 
-    val pluginPersistenceSettings = PluginPersistenceSettings(config)
+    val pluginPersistenceSettings = PluginPersistenceSettings(config, SNAPSHOT_CONFIG)
     val persistenceSettings = new PersistenceSettings(config.getConfig("akka.persistence"))
 
-    val client = HBaseClientFactory.getClient(pluginPersistenceSettings, persistenceSettings)
+    lazy val client = HBaseClientFactory.getClient(pluginPersistenceSettings, persistenceSettings)
 
     val HBaseSnapshotterName = classOf[HBaseSnapshotter].getCanonicalName
     val HdfsSnapshotterName = classOf[HdfsSnapshotter].getCanonicalName

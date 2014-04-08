@@ -6,9 +6,8 @@ import scala.concurrent._
 import akka.actor.{Actor, ActorLogging}
 import org.apache.hadoop.hbase.util.Bytes
 import scala.collection.immutable
-import akka.serialization.SerializationExtension
-import akka.persistence.hbase.common.{RowKey, DeferredConversions}
 import akka.persistence.hbase.common._
+import akka.persistence.hbase.common.Const._
 
 /**
  * Asyncronous HBase Journal.
@@ -24,16 +23,15 @@ class HBaseAsyncWriteJournal extends Actor with ActorLogging
 
   private lazy val config = context.system.settings.config
 
-  implicit lazy val hBasePersistenceSettings = PluginPersistenceSettings(config)
+  implicit override lazy val hBasePersistenceSettings = PluginPersistenceSettings(config, JOURNAL_CONFIG)
 
-  lazy val hadoopConfig = HBaseJournalInit.getHBaseConfig(config)
+  lazy val hadoopConfig = HBaseJournalInit.getHBaseConfig(config, JOURNAL_CONFIG)
 
   lazy val client = HBaseClientFactory.getClient(hBasePersistenceSettings, new PersistenceSettings(config.getConfig("akka.persistence")))
 
   lazy val publishTestingEvents = hBasePersistenceSettings.publishTestingEvents
 
   implicit override val executionContext = context.system.dispatchers.lookup(hBasePersistenceSettings.pluginDispatcherId)
-
 
   import Bytes._
   import Columns._

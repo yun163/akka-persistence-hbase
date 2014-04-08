@@ -12,6 +12,7 @@ object HBaseAsyncJournalSpec {
   case class Delete(sequenceNr: Long, permanent: Boolean)
 
   class ProcessorA(override val processorId: String) extends Processor {
+//      class ProcessorA(probe: ActorRef, override val processorId: String) extends Processor with ActorLogging {
 
     def receive = {
       case Persistent(payload, sequenceNr) =>
@@ -54,7 +55,19 @@ class HBaseAsyncJournalSpec extends TestKit(ActorSystem("test")) with ImplicitSe
   val timeout = 5.seconds
 
   override protected def beforeAll() {
-    HBaseJournalInit.createTable(config)
+    val tableName = config.getString("hbase-journal.table")
+    val admin = new HBaseAdmin(HBaseJournalInit.getHBaseConfig(config, "hbase-journal"))
+    if (admin.tableExists(tableName)) {
+      admin.disableTable(tableName)
+      admin.deleteTable(tableName)
+      admin.close()
+    }
+    HBaseJournalInit.createTable(config, "hbase-journal")
+  }
+
+  it should "act normal without dead circle" in {
+    val processor1 = system.actorOf(Props(classOf[ProcessorA], "p1"))
+    info("p1 = " + processor1)
   }
 
   it should "write and replay messages" in {
@@ -78,12 +91,12 @@ class HBaseAsyncJournalSpec extends TestKit(ActorSystem("test")) with ImplicitSe
   it should "not replay messages marked as deleted" in {
     val deleteProbe = TestProbe()
     subscribeToDeletion(deleteProbe)
-
     val processor1 = system.actorOf(Props(classOf[ProcessorA], "p2"))
     processor1 ! Persistent("a")
     processor1 ! Persistent("b")
     expectMsgAllOf(max = timeout, "a", 1L, false)
     expectMsgAllOf(max = timeout, "b", 2L, false)
+//    processor1 ! ShowData
     processor1 ! Delete(1L, false)
 
     awaitDeletion(deleteProbe)
@@ -142,12 +155,6 @@ class HBaseAsyncJournalSpec extends TestKit(ActorSystem("test")) with ImplicitSe
     probe.expectMsgType[JournalProtocol.DeleteMessages](max = 10.seconds)
 
   override protected def afterAll() {
-    val tableName = config.getString("hbase-journal.table")
-
-    val admin = new HBaseAdmin(HBaseJournalInit.getHBaseConfig(config))
-    admin.disableTable(tableName)
-    admin.deleteTable(tableName)
-    admin.close()
 
     HBaseClientFactory.reset()
 

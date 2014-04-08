@@ -31,5 +31,5 @@ trait HadoopSnapshotter extends Extension {
   protected def serialize(snapshot: Snapshot): Try[Array[Byte]] =
     serialization.serialize(snapshot)
 
-
+  def postStop(): Unit
 }

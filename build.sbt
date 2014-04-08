@@ -1,14 +1,16 @@
-organization := "pl.project13.scala"
+organization := "com.coinport"
 
 name := "akka-persistence-hbase"
 
-version := "0.3"
+version := "1.0.1-SNAPSHOT"
 
-scalaVersion := "2.10.2"
+scalaVersion := "2.10.3"
 
-val akkaVersion = "2.3-SNAPSHOT"
+val akkaVersion = "2.3.1"
 
-resolvers += "akka snapshots" at "http://repo.akka.io/snapshots"
+resolvers += "coinport-repo" at "http://192.168.0.105:8081/nexus/content/groups/public"
+
+resolvers += "maven2" at "http://repo1.maven.org/maven2"
 
 libraryDependencies += "org.apache.hadoop" % "hadoop-core"   % "1.1.2"
 
@@ -35,42 +37,18 @@ parallelExecution in Test := false
 
 publishMavenStyle := true
 
+publishArtifact in (Compile, packageDoc) := false
+
 publishArtifact in Test := false
 
 pomIncludeRepository := { _ => false }
 
-publishTo <<= version { (v: String) =>
-  val nexus = "https://oss.sonatype.org/"
-  if (v.trim.endsWith("SNAPSHOT"))
-    Some("snapshots" at nexus + "content/repositories/snapshots")
-  else
-    Some("releases" at nexus + "service/local/staging/deploy/maven2")
+credentials += Credentials(Path.userHome / ".ivy2" / ".credentials")
+
+publishTo <<= (version) { version: String =>
+  val nexus = "http://192.168.0.105:8081/nexus/content/repositories/"
+  if (version.trim.endsWith("SNAPSHOT"))
+    Some("snapshots" at nexus + "snapshots/")
+  else                                   
+    Some("releases"  at nexus + "releases/")
 }
-
-credentials += Credentials(Path.userHome / ".sbt" / "sonatype.properties")
-
-pomExtra := (
-<url>http://github.com/ktoso/akka-persistence-hbase</url>
-<licenses>
-  <license>
-    <name>Apache 2 License</name>
-    <url>http://www.apache.org/licenses/LICENSE-2.0.html</url>
-    <distribution>repo</distribution>
-  </license>
-</licenses>
-<scm>
-  <url>git@github.com:ktoso/akka-persistence-hbase.git</url>
-  <connection>scm:git:git@github.com:ktoso/akka-persistence-hbase.git</connection>
-</scm>
-<developers>
-  <developer>
-    <id>ktoso</id>
-    <name>Konrad 'ktoso' Malawski</name>
-    <url>http://blog.project13.pl</url>
-  </developer>
-</developers>
-<parent>
-  <groupId>org.sonatype.oss</groupId>
-  <artifactId>oss-parent</artifactId>
-  <version>7</version>
-</parent>)
