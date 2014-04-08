@@ -85,7 +85,7 @@ class HBaseAsyncWriteJournal extends Actor with ActorLogging
   }
 
   override def asyncDeleteMessagesTo(processorId: String, toSequenceNr: Long, permanent: Boolean): Future[Unit] = {
-    log.debug(s"AsyncDeleteMessagesTo for processorId: $processorId to sequenceNr: $toSequenceNr, premanent: $permanent")
+    log.debug(s"AsyncDeleteMessagesTo for processorId: [$processorId] to sequenceNr: $toSequenceNr, premanent: $permanent")
     val doDelete = deleteFunctionFor(permanent)
 
     val scanner = newScanner()
@@ -116,7 +116,7 @@ class HBaseAsyncWriteJournal extends Actor with ActorLogging
   // end of journal plugin api impl ------------------------------------------------------------------------------------
 
   def confirmAsync(processorId: String, sequenceNr: Long, channelId: String): Future[Unit] = {
-      log.debug(s"Confirming async for processorId: $processorId, sequenceNr: $sequenceNr and channelId: $channelId")
+      log.debug(s"Confirming async for processorId: [$processorId], sequenceNr: $sequenceNr and channelId: $channelId")
 
       executePut(
         RowKey(processorId, sequenceNr).toBytes,

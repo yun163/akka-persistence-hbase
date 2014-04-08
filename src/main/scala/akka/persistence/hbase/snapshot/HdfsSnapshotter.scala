@@ -32,7 +32,7 @@ class HdfsSnapshotter(val system: ActorSystem, settings: PluginPersistenceSettin
   private var saving = immutable.Set.empty[SnapshotMetadata]
 
   def loadAsync(processorId: String, criteria: SnapshotSelectionCriteria): Future[Option[SelectedSnapshot]] = {
-    log.info("[HDFS] Loading async, for processorId {}, criteria: {}", processorId, criteria)
+    log.info("[HDFS] Loading async, for processorId [{}], criteria: {}", processorId, criteria)
     val snapshotMetas = listSnapshots(settings.snapshotHdfsDir, processorId)
 
     @tailrec def deserializeOrTryOlder(metas: List[HdfsSnapshotDescriptor]): Option[SelectedSnapshot] = metas match {
@@ -98,17 +98,12 @@ class HdfsSnapshotter(val system: ActorSystem, settings: PluginPersistenceSettin
 
   private[snapshot] def serializeAndSave(meta: SnapshotMetadata, snapshot: Any) {
     val desc = HdfsSnapshotDescriptor(meta)
-    log.debug(">>>>>>>>>snapshot.toString<<<<<<<" + snapshot.toString)
     serialize(Snapshot(snapshot)) match {
       case Success(bytes) =>
         try {
-          log.debug(">>>>>>>>>>newHdfsPath)" + newHdfsPath(desc).getName)
-          withStream(fs.create(newHdfsPath(desc))) {
-            _.write(bytes)
-          }
+          withStream(fs.create(newHdfsPath(desc))) { _.write(bytes) }
         } catch {
-          case e: Exception =>
-            e.printStackTrace()
+          case e: Exception => e.printStackTrace()
         }
       case Failure(ex)    => log.error("Unable to serialize snapshot for meta: " + meta)
     }
@@ -123,9 +118,7 @@ class HdfsSnapshotter(val system: ActorSystem, settings: PluginPersistenceSettin
   private def withStream[S <: Closeable, A](stream: S)(fun: S => A): A =
     try fun(stream) finally stream.close()
 
-  private def newHdfsPath(desc: HdfsSnapshotDescriptor) = {
-    new Path(settings.snapshotHdfsDir, desc.toFilename)
-  }
+  private def newHdfsPath(desc: HdfsSnapshotDescriptor) = new Path(settings.snapshotHdfsDir, desc.toFilename)
 
   case class HdfsSnapshotDescriptor(processorId: String, seqNumber: Long, timestamp: Long) {
     def toFilename = s"snapshot~$processorId~$seqNumber~$timestamp"

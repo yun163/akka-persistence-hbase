@@ -9,7 +9,7 @@ import akka.persistence.hbase.journal.RowTypeMarkers._
 
 trait AsyncBaseUtils {
 
-  def client: HBaseClient
+  val client: HBaseClient
 
   implicit val executionContext: ExecutionContext
   def getTable: String

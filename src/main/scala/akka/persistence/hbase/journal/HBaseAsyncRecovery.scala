@@ -68,12 +68,12 @@ trait HBaseAsyncRecovery extends AsyncRecovery {
 
     def handleRows(in: AnyRef): Future[Long] = in match {
       case null =>
-        log.debug("AsyncReadHighestSequenceNr finished")
+        log.debug(s"AsyncReadHighestSequenceNr for processorId [$processorId] finished")
         scanner.close()
         Future(0)
 
       case rows: AsyncBaseRows =>
-        log.debug(s"AsyncReadHighestSequenceNr - got ${rows.size} rows...")
+        log.debug(s"AsyncReadHighestSequenceNr for processorId [$processorId] - got ${rows.size} rows...")
         
         val maxSoFar = rows.asScala.map(cols => sequenceNr(cols.asScala)).max
           
