@@ -65,11 +65,6 @@ class HBaseAsyncJournalSpec extends TestKit(ActorSystem("test")) with ImplicitSe
     HBaseJournalInit.createTable(config, "hbase-journal")
   }
 
-  it should "act normal without dead circle" in {
-    val processor1 = system.actorOf(Props(classOf[ProcessorA], "p1"))
-    info("p1 = " + processor1)
-  }
-
   it should "write and replay messages" in {
     val processor1 = system.actorOf(Props(classOf[ProcessorA], "p1"))
     info("p1 = " + processor1)

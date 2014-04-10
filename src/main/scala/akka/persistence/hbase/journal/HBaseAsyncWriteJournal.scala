@@ -52,11 +52,17 @@ class HBaseAsyncWriteJournal extends Actor with ActorLogging
         Array(toBytes(processorId), toBytes(sequenceNr), toBytes(AcceptedMarker), persistentToBytes(p))
       )
     }
-
-    flushWrites()
     Future.sequence(futures) map {
-      case _ if publishTestingEvents => context.system.eventStream.publish(FinishedWrites(persistentBatch.size))
+      case _ =>
+        flushWrites()
+        if (publishTestingEvents) {
+          context.system.eventStream.publish(FinishedWrites(persistentBatch.size))
+        }
     }
+//    flushWrites()
+//    Future.sequence(futures) map {
+//      case _ if publishTestingEvents => context.system.eventStream.publish(FinishedWrites(persistentBatch.size))
+//    }
   }
 
   override def asyncWriteConfirmations(confirmations: immutable.Seq[PersistentConfirmation]): Future[Unit] = {
@@ -90,7 +96,7 @@ class HBaseAsyncWriteJournal extends Actor with ActorLogging
 
     val scanner = newScanner()
     scanner.setStartKey(RowKey.firstForProcessor(processorId).toBytes)
-    scanner.setStopKey(RowKey(processorId, toSequenceNr).toBytes)
+    scanner.setStopKey(RowKey.toKeyForProcessor(processorId, toSequenceNr))
     scanner.setKeyRegexp(RowKey.patternForProcessor(processorId))
 
     def handleRows(in: AnyRef): Future[Unit] = in match {
@@ -131,6 +137,8 @@ class HBaseAsyncWriteJournal extends Actor with ActorLogging
   }
 
   override def postStop(): Unit = {
+    // client could be shutdown once at here, another user: HBaseSnapshotter should not shut down it,
+    // for it may still be used here
     client.shutdown()
     super.postStop()
   }

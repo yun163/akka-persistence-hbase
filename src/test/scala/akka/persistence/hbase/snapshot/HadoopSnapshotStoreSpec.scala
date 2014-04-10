@@ -101,7 +101,6 @@ trait HadoopSnapshotBehavior {
       // given
       val probe = TestProbe()
       val actor = system.actorOf(Props(classOf[SnapshottingActor], probe.ref, "snap1"))
-      System.out.println("After init actor")
       // then
       probe.expectMsg(max = 20.seconds, WasOfferedSnapshot(List("c", "b", "a")))
       actor ! ShowData
@@ -136,36 +135,36 @@ trait HadoopSnapshotBehavior {
 * The following two spec cann't be execute concurrently, comment one and execute another,
 * the to be executed one should config correspond "hadoop-snapshot-store.impl" value
  */
-class HdfsSnapshotStoreSpec extends TestKit(ActorSystem("hdfs-test")) with FlatSpecLike with BeforeAndAfterAll
-  with HadoopSnapshotBehavior {
-
-  behavior of "HdfsSnapshotStore"
-
-  // This operation not work
-  def config: Config = ConfigFactory.parseString(
-    s"""hadoop-snapshot-store.impl = "${classOf[HdfsSnapshotter].getCanonicalName}" """
-  ).withFallback(system.settings.config)
-
-
-  override protected def afterAll() {
-    super.afterAll()
-    system.shutdown()
-  }
-
-  override protected def beforeAll() {
-    val conf = new Configuration
-    conf.set("fs.default.name", config.getString("hadoop-snapshot-store.hdfs-default-name"))
-    // Sleep for wait HBaseAsyncJournalSpec finished, or FileSystem may close by HBaseAsyncJournalSpec finish process
-    Thread.sleep(3000)
-    val fs = FileSystem.get(conf)
-    fs.delete(new Path(config.getString("hadoop-snapshot-store.snapshot-dir")), true)
-    fs.mkdirs(new Path(config.getString("hadoop-snapshot-store.snapshot-dir")))
-    fs.close()
-  }
-
-  it should behave like hadoopSnapshotStore
-
-}
+//class HdfsSnapshotStoreSpec extends TestKit(ActorSystem("hdfs-test")) with FlatSpecLike with BeforeAndAfterAll
+//  with HadoopSnapshotBehavior {
+//
+//  behavior of "HdfsSnapshotStore"
+//
+//  // This operation not work
+//  def config: Config = ConfigFactory.parseString(
+//    s"""hadoop-snapshot-store.impl = "${classOf[HdfsSnapshotter].getCanonicalName}" """
+//  ).withFallback(system.settings.config)
+//
+//
+//  override protected def afterAll() {
+//    super.afterAll()
+//    system.shutdown()
+//  }
+//
+//  override protected def beforeAll() {
+//    val conf = new Configuration
+//    conf.set("fs.default.name", config.getString("hadoop-snapshot-store.hdfs-default-name"))
+//    // Sleep for wait HBaseAsyncJournalSpec finished, or FileSystem may close by HBaseAsyncJournalSpec finish process
+//    Thread.sleep(3000)
+//    val fs = FileSystem.get(conf)
+//    fs.delete(new Path(config.getString("hadoop-snapshot-store.snapshot-dir")), true)
+//    fs.mkdirs(new Path(config.getString("hadoop-snapshot-store.snapshot-dir")))
+//    fs.close()
+//  }
+//
+//  it should behave like hadoopSnapshotStore
+//
+//}
 
 //Comment for test HdfsSnapshotStoreSpec, they cann't be tested together
 //class HBaseSnapshotStoreSpec extends TestKit(ActorSystem("hbase-test")) with FlatSpecLike with BeforeAndAfterAll

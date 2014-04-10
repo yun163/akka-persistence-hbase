@@ -1,11 +1,10 @@
 package akka.persistence.hbase.snapshot
 
 import akka.actor.ActorSystem
-import akka.persistence.{SelectedSnapshot, SnapshotSelectionCriteria}
+import akka.persistence.{SelectedSnapshot, SnapshotSelectionCriteria, SnapshotMetadata}
 import scala.concurrent.{Promise, Future}
 import org.hbase.async.{KeyValue, HBaseClient}
 import org.apache.hadoop.hbase.util.Bytes._
-import akka.persistence.SnapshotMetadata
 import akka.persistence.hbase.journal._
 import akka.persistence.hbase.common._
 import collection.JavaConverters._
@@ -145,7 +144,8 @@ class HBaseSnapshotter(val system: ActorSystem, val pluginPersistenceSettings: P
   }
 
   override def postStop(): Unit = {
-    client.shutdown()
+    // client should not bed shutdown here, it's also used by HBaseAsyncWriteJournal which will shutdown it
+    // client.shutdown()
   }
 
 }
