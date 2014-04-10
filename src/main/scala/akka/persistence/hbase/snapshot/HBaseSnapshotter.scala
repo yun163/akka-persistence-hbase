@@ -1,28 +1,28 @@
 package akka.persistence.hbase.snapshot
 
 import akka.actor.ActorSystem
-import akka.persistence.{SelectedSnapshot, SnapshotSelectionCriteria, SnapshotMetadata}
-import scala.concurrent.{Promise, Future}
-import org.hbase.async.{KeyValue, HBaseClient}
+import akka.persistence.{ SelectedSnapshot, SnapshotSelectionCriteria, SnapshotMetadata }
+import scala.concurrent.{ Promise, Future }
+import org.hbase.async.{ KeyValue, HBaseClient }
 import org.apache.hadoop.hbase.util.Bytes._
 import akka.persistence.hbase.journal._
 import akka.persistence.hbase.common._
 import collection.JavaConverters._
-import java.util. { ArrayList => JArrayList }
+import java.util.{ ArrayList => JArrayList }
 import scala.collection.immutable
 import akka.persistence.serialization.Snapshot
-import scala.util.{Failure, Success}
+import scala.util.{ Failure, Success }
 import akka.persistence.hbase.common.TestingEventProtocol.DeletedSnapshotsFor
 
 class HBaseSnapshotter(val system: ActorSystem, val pluginPersistenceSettings: PluginPersistenceSettings, val client: HBaseClient) extends HadoopSnapshotter
-  with AsyncBaseUtils with DeferredConversions {
+    with AsyncBaseUtils with DeferredConversions {
 
   val log = system.log
 
   implicit val settings = pluginPersistenceSettings
 
-  override def getTable =  settings.table
-  override def getFamily =  settings.family
+  override def getTable = settings.table
+  override def getFamily = settings.family
 
   implicit override val executionContext = system.dispatchers.lookup("akka-hbase-persistence-dispatcher")
 
@@ -57,9 +57,9 @@ class HBaseSnapshotter(val system: ActorSystem, val pluginPersistenceSettings: P
 
       case rows: AsyncBaseRows =>
         val maybeSnapshot: Option[(Long, Snapshot)] = for {
-          row      <- rows.asScala.headOption
-          srow      = row.asScala
-          seqNr     = bytesToVint(findColumn(srow, SequenceNr).value)
+          row <- rows.asScala.headOption
+          srow = row.asScala
+          seqNr = bytesToVint(findColumn(srow, SequenceNr).value)
           snapshot <- deserialize(findColumn(srow, Message).value).toOption
         } yield seqNr -> snapshot
 
@@ -87,7 +87,7 @@ class HBaseSnapshotter(val system: ActorSystem, val pluginPersistenceSettings: P
       case Success(serializedSnapshot) =>
         executePut(
           RowKey(meta.processorId, meta.sequenceNr).toBytes,
-          Array(Marker,  SequenceNr, Message),
+          Array(Marker, SequenceNr, Message),
           Array(SnapshotMarkerBytes, toBytes(meta.sequenceNr), serializedSnapshot)
         )
 

@@ -30,7 +30,6 @@ libraryDependencies += "com.typesafe.akka" %% "akka-testkit"       % akkaVersion
 
 libraryDependencies += "org.scalatest"     %% "scalatest"          % "2.0"       % "test"
 
-
 parallelExecution in Test := false
 
 // publishing settings
@@ -52,3 +51,5 @@ publishTo <<= (version) { version: String =>
   else                                   
     Some("releases"  at nexus + "releases/")
 }
+
+scalariformSettings

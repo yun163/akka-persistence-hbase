@@ -1,7 +1,7 @@
 package akka.persistence.hbase.common
 
 import akka.actor.Actor
-import akka.persistence.{Persistent, PersistentRepr}
+import akka.persistence.{ Persistent, PersistentRepr }
 import akka.serialization.SerializationExtension
 
 trait HBaseSerialization {

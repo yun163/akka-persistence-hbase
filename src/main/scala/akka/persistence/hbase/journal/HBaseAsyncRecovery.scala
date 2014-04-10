@@ -1,13 +1,13 @@
 package akka.persistence.hbase.journal
 
 import akka.persistence.PersistentRepr
-import akka.actor.{ActorLogging, Actor}
+import akka.actor.{ ActorLogging, Actor }
 import scala.concurrent.Future
 import org.hbase.async.KeyValue
 import scala.collection.mutable
 import org.apache.hadoop.hbase.util.Bytes
 import akka.persistence.journal._
-import akka.persistence.hbase.common.{Columns, RowKey, DeferredConversions}
+import akka.persistence.hbase.common.{ Columns, RowKey, DeferredConversions }
 import scala.annotation.switch
 
 trait HBaseAsyncRecovery extends AsyncRecovery {
@@ -21,8 +21,7 @@ trait HBaseAsyncRecovery extends AsyncRecovery {
   // async recovery plugin impl
 
   // todo can be improved to to N parallel scans for each "partition" we created, instead of one "big scan"
-  override def asyncReplayMessages(processorId: String, fromSequenceNr: Long, toSequenceNr: Long, max: Long)
-                                  (replayCallback: PersistentRepr => Unit): Future[Unit] = {
+  override def asyncReplayMessages(processorId: String, fromSequenceNr: Long, toSequenceNr: Long, max: Long)(replayCallback: PersistentRepr => Unit): Future[Unit] = {
     log.debug(s"Async replay for processorId [$processorId], from sequenceNr: [$fromSequenceNr], to sequenceNr: [$toSequenceNr]")
 
     val scanner = newScanner()
@@ -75,9 +74,9 @@ trait HBaseAsyncRecovery extends AsyncRecovery {
 
       case rows: AsyncBaseRows =>
         log.debug(s"AsyncReadHighestSequenceNr for processorId [$processorId] - got ${rows.size} rows...")
-        
+
         val maxSoFar = rows.asScala.map(cols => sequenceNr(cols.asScala)).max
-          
+
         go() map { reachedSeqNr =>
           math.max(reachedSeqNr, maxSoFar)
         }

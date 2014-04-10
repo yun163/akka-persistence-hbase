@@ -22,23 +22,22 @@ case class PluginPersistenceSettings(
   replayDispatcherId: String,
   publishTestingEvents: Boolean,
   snapshotHdfsDir: String,
-  hdfsDefaultName:String
-)
+  hdfsDefaultName: String)
 
 object PluginPersistenceSettings {
   def apply(rootConfig: Config, persistenceConf: String): PluginPersistenceSettings = {
     val persistenceConfig = rootConfig.getConfig(persistenceConf)
     PluginPersistenceSettings(
-      zookeeperQuorum      = persistenceConfig.getString("hbase.zookeeper.quorum"),
-      table                = persistenceConfig.getString("table"),
-      family               = persistenceConfig.getString("family"),
-      partitionCount       = persistenceConfig.getInt("partition.count"),
-      scanBatchSize        = persistenceConfig.getInt("scan-batch-size"),
-      pluginDispatcherId   = persistenceConfig.getString("plugin-dispatcher"),
-      replayDispatcherId   = persistenceConfig.getString("replay-dispatcher"),
+      zookeeperQuorum = persistenceConfig.getString("hbase.zookeeper.quorum"),
+      table = persistenceConfig.getString("table"),
+      family = persistenceConfig.getString("family"),
+      partitionCount = persistenceConfig.getInt("partition.count"),
+      scanBatchSize = persistenceConfig.getInt("scan-batch-size"),
+      pluginDispatcherId = persistenceConfig.getString("plugin-dispatcher"),
+      replayDispatcherId = persistenceConfig.getString("replay-dispatcher"),
       publishTestingEvents = persistenceConfig.getBoolean("publish-testing-events"),
-      snapshotHdfsDir      = persistenceConfig.getString("snapshot-dir"),
-      hdfsDefaultName      = persistenceConfig.getString("hdfs-default-name")
+      snapshotHdfsDir = persistenceConfig.getString("snapshot-dir"),
+      hdfsDefaultName = persistenceConfig.getString("hdfs-default-name")
     )
   }
 }
