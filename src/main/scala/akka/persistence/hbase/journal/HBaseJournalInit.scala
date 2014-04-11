@@ -23,6 +23,7 @@ object HBaseJournalInit {
     val journalConfig = config.getConfig(persistentConfig)
     val table = journalConfig.getString("table")
     val familyName = journalConfig.getString("family")
+    val partitionCount = Integer.parseInt(journalConfig.getString("partition.count"))
 
     try doInitTable(admin, table, familyName) finally admin.close()
   }

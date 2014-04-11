@@ -24,12 +24,14 @@ class HBaseSnapshotter(val system: ActorSystem, val pluginPersistenceSettings: P
   override def getTable = settings.table
   override def getFamily = settings.family
 
+  HBaseJournalInit.createTable(system.settings.config, Const.SNAPSHOT_CONFIG)
+
   implicit override val executionContext = system.dispatchers.lookup("akka-hbase-persistence-dispatcher")
 
   type AsyncBaseRows = JArrayList[JArrayList[KeyValue]]
 
   /** Snapshots we're in progress of saving */
-  private var saving = immutable.Set.empty[SnapshotMetadata]
+  //  private var saving = immutable.Set.empty[SnapshotMetadata]
 
   import Columns._
   import RowTypeMarkers._
@@ -81,7 +83,7 @@ class HBaseSnapshotter(val system: ActorSystem, val pluginPersistenceSettings: P
 
   def saveAsync(meta: SnapshotMetadata, snapshot: Any): Future[Unit] = {
     log.debug("Saving async, of {}", meta)
-    saving += meta
+    //    saving += meta
 
     serialize(Snapshot(snapshot)) match {
       case Success(serializedSnapshot) =>
@@ -98,12 +100,12 @@ class HBaseSnapshotter(val system: ActorSystem, val pluginPersistenceSettings: P
 
   def saved(meta: SnapshotMetadata): Unit = {
     log.debug("Saved: {}", meta)
-    saving -= meta
+    //    saving -= meta
   }
 
   def delete(meta: SnapshotMetadata): Unit = {
     log.debug("Deleting: {}", meta)
-    saving -= meta
+    //    saving -= meta
     executeDelete(RowKey(meta.processorId, meta.sequenceNr).toBytes)
   }
 
