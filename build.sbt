@@ -6,7 +6,7 @@ version := "1.0.1-SNAPSHOT"
 
 scalaVersion := "2.10.3"
 
-val akkaVersion = "2.3.1"
+val akkaVersion = "2.3.2"
 
 resolvers += "coinport-repo" at "http://192.168.0.105:8081/nexus/content/groups/public"
 

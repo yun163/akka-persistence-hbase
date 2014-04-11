@@ -10,7 +10,7 @@ import org.apache.commons.io.FilenameUtils
 import scala.util.{ Try, Failure, Success }
 import akka.persistence.serialization.Snapshot
 import scala.annotation.tailrec
-import java.io.Closeable
+import java.io.{BufferedOutputStream, Closeable, BufferedInputStream}
 import org.apache.commons.io.IOUtils
 import scala.collection.immutable
 
@@ -101,7 +101,7 @@ class HdfsSnapshotter(val system: ActorSystem, settings: PluginPersistenceSettin
     serialize(Snapshot(snapshot)) match {
       case Success(bytes) =>
         try {
-          withStream(fs.create(newHdfsPath(desc))) { _.write(bytes) }
+          withStream(new BufferedOutputStream(fs.create(newHdfsPath(desc)))) { _.write(bytes) }
         } catch {
           case e: Exception => e.printStackTrace()
         }
@@ -112,7 +112,7 @@ class HdfsSnapshotter(val system: ActorSystem, settings: PluginPersistenceSettin
 
   private[snapshot] def tryLoadingSnapshot(desc: HdfsSnapshotDescriptor): Try[Snapshot] = {
     val path = new Path(settings.snapshotHdfsDir, desc.toFilename)
-    deserialize(withStream(fs.open(path)) { IOUtils.toByteArray })
+    deserialize(withStream(new BufferedInputStream(fs.open(path))) { IOUtils.toByteArray })
   }
 
   private def withStream[S <: Closeable, A](stream: S)(fun: S => A): A =
