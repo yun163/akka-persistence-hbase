@@ -1,9 +1,9 @@
 package akka.persistence.hbase.journal
 
 import akka.persistence.journal.AsyncWriteJournal
-import akka.persistence.{PersistenceSettings, PersistentConfirmation, PersistentId, PersistentRepr}
+import akka.persistence.{ PersistenceSettings, PersistentConfirmation, PersistentId, PersistentRepr }
 import scala.concurrent._
-import akka.actor.{Actor, ActorLogging}
+import akka.actor.{ Actor, ActorLogging }
 import org.apache.hadoop.hbase.util.Bytes
 import scala.collection.immutable
 import akka.persistence.hbase.common._
@@ -15,8 +15,8 @@ import akka.persistence.hbase.common.Const._
  * Uses AsyncBase to implement asynchronous IPC with HBase.
  */
 class HBaseAsyncWriteJournal extends Actor with ActorLogging
-  with HBaseJournalBase with AsyncWriteJournal
-  with HBaseAsyncRecovery {
+    with HBaseJournalBase with AsyncWriteJournal
+    with HBaseAsyncRecovery {
 
   import RowTypeMarkers._
   import TestingEventProtocol._
@@ -47,10 +47,10 @@ class HBaseAsyncWriteJournal extends Actor with ActorLogging
 
     val futures = persistentBatch map { p =>
       import p._
-      
+
       executePut(
         RowKey(processorId, sequenceNr).toBytes,
-        Array(ProcessorId,          SequenceNr,          Marker,                  Message),
+        Array(ProcessorId, SequenceNr, Marker, Message),
         Array(toBytes(processorId), toBytes(sequenceNr), toBytes(AcceptedMarker), persistentToBytes(p))
       )
     }
@@ -111,7 +111,7 @@ class HBaseAsyncWriteJournal extends Actor with ActorLogging
         scanner.close()
         Future(Array[Byte]())
 
-      case rows: AsyncBaseRows  =>
+      case rows: AsyncBaseRows =>
         val deletes = for {
           row <- rows.asScala
           col <- row.asScala.headOption // just one entry is enough, because is contains the key
@@ -127,14 +127,14 @@ class HBaseAsyncWriteJournal extends Actor with ActorLogging
   // end of journal plugin api impl ------------------------------------------------------------------------------------
 
   def confirmAsync(processorId: String, sequenceNr: Long, channelId: String): Future[Unit] = {
-      log.debug(s"Confirming async for processorId: [$processorId], sequenceNr: $sequenceNr and channelId: $channelId")
+    log.debug(s"Confirming async for processorId: [$processorId], sequenceNr: $sequenceNr and channelId: $channelId")
 
-      executePut(
-        RowKey(processorId, sequenceNr).toBytes,
-        Array(Marker),
-        Array(confirmedMarkerBytes(channelId))
-      )
-    }
+    executePut(
+      RowKey(processorId, sequenceNr).toBytes,
+      Array(Marker),
+      Array(confirmedMarkerBytes(channelId))
+    )
+  }
 
   private def deleteFunctionFor(permanent: Boolean): (Array[Byte]) => Future[Unit] = {
     if (permanent) deleteRow

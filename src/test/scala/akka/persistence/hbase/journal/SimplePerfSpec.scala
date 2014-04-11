@@ -1,9 +1,9 @@
 package akka.persistence.hbase.journal
 
 import akka.persistence._
-import akka.actor.{ActorSystem, Props}
-import akka.testkit.{TestProbe, TestKit}
-import org.scalatest.{DoNotDiscover, BeforeAndAfterAll, Matchers, FlatSpecLike}
+import akka.actor.{ ActorSystem, Props }
+import akka.testkit.{ TestProbe, TestKit }
+import org.scalatest.{ DoNotDiscover, BeforeAndAfterAll, Matchers, FlatSpecLike }
 import com.google.common.base.Stopwatch
 import concurrent.duration._
 import java.util.concurrent.TimeUnit
@@ -18,7 +18,7 @@ object SimplePerfSpec {
       case Persistent(payload, sequenceNr) =>
 
       case Persistent(payload, Until) =>
-        context.system.eventStream.publish (FinishedWrites(Until))
+        context.system.eventStream.publish(FinishedWrites(Until))
         sender ! FinishedWrites(Until)
     }
   }
@@ -27,7 +27,7 @@ object SimplePerfSpec {
 
 @DoNotDiscover
 class SimplePerfSpec extends TestKit(ActorSystem("test")) with FlatSpecLike
-  with Matchers with BeforeAndAfterAll {
+    with Matchers with BeforeAndAfterAll {
 
   import SimplePerfSpec._
 

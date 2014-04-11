@@ -10,7 +10,7 @@ import org.apache.commons.io.FilenameUtils
 import scala.util.{ Try, Failure, Success }
 import akka.persistence.serialization.Snapshot
 import scala.annotation.tailrec
-import java.io.{BufferedOutputStream, Closeable, BufferedInputStream}
+import java.io.{ BufferedOutputStream, Closeable, BufferedInputStream }
 import org.apache.commons.io.IOUtils
 import scala.collection.immutable
 

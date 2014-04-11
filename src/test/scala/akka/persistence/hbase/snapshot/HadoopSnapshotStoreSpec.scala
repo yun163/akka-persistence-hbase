@@ -1,17 +1,17 @@
 package akka.persistence.hbase.snapshot
 
-import akka.testkit.{TestKit, TestProbe}
-import akka.actor.{ActorLogging, Props, ActorRef, ActorSystem}
-import org.scalatest.{BeforeAndAfterAll, FlatSpecLike}
+import akka.testkit.{ TestKit, TestProbe }
+import akka.actor.{ ActorLogging, Props, ActorRef, ActorSystem }
+import org.scalatest.{ BeforeAndAfterAll, FlatSpecLike }
 import akka.persistence._
-import akka.persistence.hbase.journal.{HBaseClientFactory, HBaseJournalInit}
+import akka.persistence.hbase.journal.{ HBaseClientFactory, HBaseJournalInit }
 import org.apache.hadoop.hbase.client.HBaseAdmin
 import concurrent.duration._
 import akka.persistence.SaveSnapshotFailure
 import akka.persistence.SaveSnapshotSuccess
 import akka.persistence.SnapshotMetadata
-import com.typesafe.config.{ConfigFactory, Config}
-import org.apache.hadoop.fs.{Path, FileSystem}
+import com.typesafe.config.{ ConfigFactory, Config }
+import org.apache.hadoop.fs.{ Path, FileSystem }
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.permission.{ FsPermission, FsAction }
 
@@ -52,7 +52,7 @@ object HadoopSnapshotStoreSpec {
         data = offeredSnapshot.asInstanceOf[List[String]]
         log.info("Offered data : " + data.toString())
         probe ! WasOfferedSnapshot(data)
-      
+
       case DeleteSnapshot(toSeqNr) =>
         log.info("Delete, to: " + toSeqNr)
         deleteSnapshot(toSeqNr, System.currentTimeMillis())
@@ -157,9 +157,10 @@ class HdfsSnapshotStoreSpec extends TestKit(ActorSystem("hdfs-test")) with FlatS
     // Sleep for wait HBaseAsyncJournalSpec finished, or FileSystem may close by HBaseAsyncJournalSpec finish process
     Thread.sleep(3000)
     val fs = FileSystem.get(conf)
-    fs.delete(new Path(config.getString("hadoop-snapshot-store.snapshot-dir")), true)
-    fs.mkdirs(new Path(config.getString("hadoop-snapshot-store.snapshot-dir")),
-      new FsPermission(FsAction.ALL, FsAction.ALL, FsAction.ALL))
+    val path = new Path(config.getString("hadoop-snapshot-store.snapshot-dir"))
+    fs.delete(path, true)
+    fs.mkdirs(path)
+    fs.setPermission(path, new FsPermission(FsAction.ALL, FsAction.ALL, FsAction.ALL))
     fs.close()
   }
 

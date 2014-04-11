@@ -1,8 +1,8 @@
 package akka.persistence.hbase.journal
 
 import akka.persistence._
-import akka.testkit.{TestProbe, ImplicitSender, TestKit}
-import akka.actor.{Actor, Props, ActorSystem}
+import akka.testkit.{ TestProbe, ImplicitSender, TestKit }
+import akka.actor.{ Actor, Props, ActorSystem }
 import org.scalatest._
 import scala.concurrent.duration._
 import org.apache.hadoop.hbase.client.HBaseAdmin
@@ -12,7 +12,7 @@ object HBaseAsyncJournalSpec {
   case class Delete(sequenceNr: Long, permanent: Boolean)
 
   class ProcessorA(override val processorId: String) extends Processor {
-//      class ProcessorA(probe: ActorRef, override val processorId: String) extends Processor with ActorLogging {
+    //      class ProcessorA(probe: ActorRef, override val processorId: String) extends Processor with ActorLogging {
 
     def receive = {
       case Persistent(payload, sequenceNr) =>
@@ -44,7 +44,7 @@ object HBaseAsyncJournalSpec {
 }
 
 class HBaseAsyncJournalSpec extends TestKit(ActorSystem("test")) with ImplicitSender with FlatSpecLike
-  with Matchers with BeforeAndAfterAll {
+    with Matchers with BeforeAndAfterAll {
 
   import HBaseAsyncJournalSpec._
 
@@ -91,7 +91,7 @@ class HBaseAsyncJournalSpec extends TestKit(ActorSystem("test")) with ImplicitSe
     processor1 ! Persistent("b")
     expectMsgAllOf(max = timeout, "a", 1L, false)
     expectMsgAllOf(max = timeout, "b", 2L, false)
-//    processor1 ! ShowData
+    //    processor1 ! ShowData
     processor1 ! Delete(1L, false)
 
     awaitDeletion(deleteProbe)
@@ -144,7 +144,7 @@ class HBaseAsyncJournalSpec extends TestKit(ActorSystem("test")) with ImplicitSe
     probe.expectMsgType[DeliveredByChannel](max = 10.seconds)
 
   def subscribeToDeletion(probe: TestProbe): Unit =
-      system.eventStream.subscribe(probe.ref, classOf[JournalProtocol.DeleteMessages])
+    system.eventStream.subscribe(probe.ref, classOf[JournalProtocol.DeleteMessages])
 
   def awaitDeletion(probe: TestProbe): Unit =
     probe.expectMsgType[JournalProtocol.DeleteMessages](max = 10.seconds)
