@@ -55,19 +55,19 @@ class HBaseAsyncWriteJournal extends Actor with ActorLogging
       )
     }
     // Comment one and uncomment the other for specific scenario usage
-    // Online usage
-    //    Future.sequence(futures) map {
-    //      case _ =>
-    //        flushWrites()
-    //        if (publishTestingEvents) {
-    //          context.system.eventStream.publish(FinishedWrites(persistentBatch.size))
-    //        }
-    //    }
+//    Online usage
+        Future.sequence(futures) map {
+          case _ =>
+            flushWrites()
+            if (publishTestingEvents) {
+              context.system.eventStream.publish(FinishedWrites(persistentBatch.size))
+            }
+        }
     //    Unit-test usage
-    flushWrites()
-    Future.sequence(futures) map {
-      case _ if publishTestingEvents => context.system.eventStream.publish(FinishedWrites(persistentBatch.size))
-    }
+//    flushWrites()
+//    Future.sequence(futures) map {
+//      case _ if publishTestingEvents => context.system.eventStream.publish(FinishedWrites(persistentBatch.size))
+//    }
   }
 
   override def asyncWriteConfirmations(confirmations: immutable.Seq[PersistentConfirmation]): Future[Unit] = {
