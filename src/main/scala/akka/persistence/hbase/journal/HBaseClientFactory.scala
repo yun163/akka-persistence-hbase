@@ -22,8 +22,13 @@ object HBaseClientFactory {
       persistenceSettings.journal.maxDeletionBatchSize
     ).max.toShort
     val hbaseClient = client.get()
+<<<<<<< HEAD
     // set Flush Interval to 1 for flush request instantly
     hbaseClient.setFlushInterval(1)
+=======
+    // set Flush Interval to 0 to disable the batch flush, will flush instantly
+    hbaseClient.setFlushInterval(0)
+>>>>>>> Fix bug for journal timeout by set flush interval to 0
     hbaseClient
   }
 
