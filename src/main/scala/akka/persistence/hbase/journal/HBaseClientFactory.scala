@@ -21,9 +21,9 @@ object HBaseClientFactory {
       persistenceSettings.journal.maxConfirmationBatchSize,
       persistenceSettings.journal.maxDeletionBatchSize
     ).max.toShort
-
     val hbaseClient = client.get()
-    hbaseClient.setFlushInterval(maxBatchSize)
+    // set Flush Interval to 1 for flush request instantly
+    hbaseClient.setFlushInterval(1)
     hbaseClient
   }
 

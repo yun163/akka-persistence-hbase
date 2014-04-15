@@ -37,17 +37,17 @@ class HBaseSnapshotter(val system: ActorSystem, val pluginPersistenceSettings: P
   import RowTypeMarkers._
 
   def loadAsync(processorId: String, criteria: SnapshotSelectionCriteria): Future[Option[SelectedSnapshot]] = {
-    log.debug("Loading async for processorId: [{}] on criteria: {}", processorId, criteria)
+    //    log.debug("Loading async for processorId: [{}] on criteria: {}", processorId, criteria)
     val scanner = newScanner()
     val SnapshotSelectionCriteria(maxSequenceNr, maxTimestamp) = criteria
 
     val start = RowKey.firstForProcessor(processorId)
     val stop = RowKey(processorId, maxSequenceNr)
-    log.debug("Loading async for processorId: [{}] start: {}, end: {}", processorId, start.toKeyString, stop.toKeyString)
+    //    log.debug("Loading async for processorId: [{}] start: {}, end: {}", processorId, start.toKeyString, stop.toKeyString)
     scanner.setStartKey(start.toBytes)
     scanner.setStopKey(stop.toBytes)
     scanner.setKeyRegexp(RowKey.patternForProcessor(processorId))
-    log.debug("Loading async for processorId: [{}] keyRegexp: {}", processorId, RowKey.patternForProcessor(processorId))
+    //    log.debug("Loading async for processorId: [{}] keyRegexp: {}", processorId, RowKey.patternForProcessor(processorId))
 
     val promise = Promise[Option[SelectedSnapshot]]()
 
@@ -55,7 +55,7 @@ class HBaseSnapshotter(val system: ActorSystem, val pluginPersistenceSettings: P
       case null =>
         promise trySuccess None // got to end of Scan, if nothing completed, we complete with "found no valid snapshot"
         scanner.close()
-        log.debug("Finished async load for processorId: [{}] on criteria: {}", processorId, criteria)
+      //        log.debug("Finished async load for processorId: [{}] on criteria: {}", processorId, criteria)
 
       case rows: AsyncBaseRows =>
         val maybeSnapshot: Option[(Long, Snapshot)] = for {
@@ -82,7 +82,7 @@ class HBaseSnapshotter(val system: ActorSystem, val pluginPersistenceSettings: P
   }
 
   def saveAsync(meta: SnapshotMetadata, snapshot: Any): Future[Unit] = {
-    log.debug("Saving async, of {}", meta)
+    //    log.debug("Saving async, of {}", meta)
     //    saving += meta
 
     serialize(Snapshot(snapshot)) match {
@@ -99,18 +99,18 @@ class HBaseSnapshotter(val system: ActorSystem, val pluginPersistenceSettings: P
   }
 
   def saved(meta: SnapshotMetadata): Unit = {
-    log.debug("Saved: {}", meta)
+    //    log.debug("Saved: {}", meta)
     //    saving -= meta
   }
 
   def delete(meta: SnapshotMetadata): Unit = {
-    log.debug("Deleting: {}", meta)
+    //    log.debug("Deleting: {}", meta)
     //    saving -= meta
     executeDelete(RowKey(meta.processorId, meta.sequenceNr).toBytes)
   }
 
   def delete(processorId: String, criteria: SnapshotSelectionCriteria): Unit = {
-    log.debug("Deleting processorId: [{}], criteria: {}", processorId, criteria)
+    //    log.debug("Deleting processorId: [{}], criteria: {}", processorId, criteria)
 
     val scanner = newScanner()
 
@@ -123,7 +123,7 @@ class HBaseSnapshotter(val system: ActorSystem, val pluginPersistenceSettings: P
 
     def handleRows(in: AnyRef): Future[Unit] = in match {
       case null =>
-        log.debug("Finished scanning for snapshots to delete")
+        //        log.debug("Finished scanning for snapshots to delete")
         flushWrites()
         scanner.close()
         Future.successful()

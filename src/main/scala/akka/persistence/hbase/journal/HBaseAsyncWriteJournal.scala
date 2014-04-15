@@ -43,8 +43,7 @@ class HBaseAsyncWriteJournal extends Actor with ActorLogging
   // journal plugin api impl -------------------------------------------------------------------------------------------
 
   override def asyncWriteMessages(persistentBatch: immutable.Seq[PersistentRepr]): Future[Unit] = {
-    log.debug(s"Write async for ${persistentBatch.size} presistent messages")
-
+    //    log.debug(s"Write async for ${persistentBatch.size} presistent messages")
     val futures = persistentBatch map { p =>
       import p._
 
@@ -54,35 +53,29 @@ class HBaseAsyncWriteJournal extends Actor with ActorLogging
         Array(toBytes(processorId), toBytes(sequenceNr), toBytes(AcceptedMarker), persistentToBytes(p))
       )
     }
-    // Comment one and uncomment the other for specific scenario usage
-//    Online usage
-        Future.sequence(futures) map {
-          case _ =>
-            flushWrites()
-            if (publishTestingEvents) {
-              context.system.eventStream.publish(FinishedWrites(persistentBatch.size))
-            }
+    Future.sequence(futures) map {
+      case _ =>
+        flushWrites()
+        if (publishTestingEvents) {
+          context.system.eventStream.publish(FinishedWrites(persistentBatch.size))
         }
-    //    Unit-test usage
-//    flushWrites()
-//    Future.sequence(futures) map {
-//      case _ if publishTestingEvents => context.system.eventStream.publish(FinishedWrites(persistentBatch.size))
-//    }
+    }
   }
 
   override def asyncWriteConfirmations(confirmations: immutable.Seq[PersistentConfirmation]): Future[Unit] = {
-    log.debug(s"AsyncWriteConfirmations for ${confirmations.size} messages")
+    //    log.debug(s"AsyncWriteConfirmations for ${confirmations.size} messages")
 
     val fs = confirmations map { confirm =>
       confirmAsync(confirm.processorId, confirm.sequenceNr, confirm.channelId)
     }
-
-    flushWrites()
-    Future.sequence(fs)
+    Future.sequence(fs) map {
+      case _ =>
+        flushWrites()
+    }
   }
 
   override def asyncDeleteMessages(messageIds: immutable.Seq[PersistentId], permanent: Boolean): Future[Unit] = {
-    log.debug(s"Async delete [${messageIds.size}] messages, premanent: $permanent")
+    //    log.debug(s"Async delete [${messageIds.size}] messages, premanent: $permanent")
 
     val doDelete = deleteFunctionFor(permanent)
 
@@ -91,12 +84,13 @@ class HBaseAsyncWriteJournal extends Actor with ActorLogging
       rowId = RowKey(messageId.processorId, messageId.sequenceNr)
     } yield doDelete(rowId.toBytes)
 
-    flushWrites()
-    Future.sequence(deleteFutures)
+    Future.sequence(deleteFutures) map {
+      case _ => flushWrites()
+    }
   }
 
   override def asyncDeleteMessagesTo(processorId: String, toSequenceNr: Long, permanent: Boolean): Future[Unit] = {
-    log.debug(s"AsyncDeleteMessagesTo for processorId: [$processorId] to sequenceNr: $toSequenceNr, premanent: $permanent")
+    //    log.debug(s"AsyncDeleteMessagesTo for processorId: [$processorId] to sequenceNr: $toSequenceNr, premanent: $permanent")
     val doDelete = deleteFunctionFor(permanent)
 
     val scanner = newScanner()
@@ -106,7 +100,7 @@ class HBaseAsyncWriteJournal extends Actor with ActorLogging
 
     def handleRows(in: AnyRef): Future[Unit] = in match {
       case null =>
-        log.debug("AsyncDeleteMessagesTo finished scanning for keys")
+        //  log.debug("AsyncDeleteMessagesTo finished scanning for keys")
         flushWrites()
         scanner.close()
         Future(Array[Byte]())
@@ -127,8 +121,7 @@ class HBaseAsyncWriteJournal extends Actor with ActorLogging
   // end of journal plugin api impl ------------------------------------------------------------------------------------
 
   def confirmAsync(processorId: String, sequenceNr: Long, channelId: String): Future[Unit] = {
-    log.debug(s"Confirming async for processorId: [$processorId], sequenceNr: $sequenceNr and channelId: $channelId")
-
+    //    log.debug(s"Confirming async for processorId: [$processorId], sequenceNr: $sequenceNr and channelId: $channelId")
     executePut(
       RowKey(processorId, sequenceNr).toBytes,
       Array(Marker),

@@ -32,7 +32,7 @@ class HdfsSnapshotter(val system: ActorSystem, settings: PluginPersistenceSettin
   private var saving = immutable.Set.empty[SnapshotMetadata]
 
   def loadAsync(processorId: String, criteria: SnapshotSelectionCriteria): Future[Option[SelectedSnapshot]] = {
-    log.info("[HDFS] Loading async, for processorId [{}], criteria: {}", processorId, criteria)
+    //    log.info("[HDFS] Loading async, for processorId [{}], criteria: {}", processorId, criteria)
     val snapshotMetas = listSnapshots(settings.snapshotHdfsDir, processorId)
 
     @tailrec def deserializeOrTryOlder(metas: List[HdfsSnapshotDescriptor]): Option[SelectedSnapshot] = metas match {
@@ -62,14 +62,14 @@ class HdfsSnapshotter(val system: ActorSystem, settings: PluginPersistenceSettin
     }
 
   def saved(meta: SnapshotMetadata) {
-    log.debug("Saved: {}", meta)
+    //    log.debug("Saved: {}", meta)
     saving -= meta
   }
 
   def delete(meta: SnapshotMetadata) {
     val desc = HdfsSnapshotDescriptor(meta)
     fs.delete(new Path(settings.snapshotHdfsDir, desc.toFilename), true)
-    log.debug("Deleted snapshot: {}", desc)
+    //    log.debug("Deleted snapshot: {}", desc)
     saving -= meta
   }
 
