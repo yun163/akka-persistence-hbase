@@ -23,7 +23,7 @@ object HBaseClientFactory {
     ).max.toShort
     val hbaseClient = client.get()
     // set Flush Interval to 0 to disable the batch flush, will flush instantly
-    hbaseClient.setFlushInterval(0)
+    hbaseClient.setFlushInterval(maxBatchSize)
     hbaseClient
   }
 

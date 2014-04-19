@@ -27,7 +27,7 @@ trait HBaseAsyncRecovery extends AsyncRecovery {
     val scanner = newScanner()
     scanner.setStartKey(RowKey(processorId, fromSequenceNr).toBytes)
     scanner.setStopKey(RowKey.toKeyForProcessor(processorId, toSequenceNr))
-    scanner.setKeyRegexp(RowKey.patternForProcessor(processorId))
+    //    scanner.setKeyRegexp(RowKey.patternForProcessor(processorId))
 
     scanner.setMaxNumRows(hBasePersistenceSettings.scanBatchSize)
 
@@ -64,7 +64,7 @@ trait HBaseAsyncRecovery extends AsyncRecovery {
     val scanner = newScanner()
     scanner.setStartKey(RowKey(processorId, fromSequenceNr).toBytes)
     scanner.setStopKey(RowKey.lastForProcessor(processorId))
-    scanner.setKeyRegexp(RowKey.patternForProcessor(processorId))
+//    scanner.setKeyRegexp(RowKey.patternForProcessor(processorId))
 
     def handleRows(in: AnyRef): Future[Long] = in match {
       case null =>

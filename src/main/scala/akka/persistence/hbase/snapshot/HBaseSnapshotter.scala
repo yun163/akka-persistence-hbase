@@ -31,7 +31,7 @@ class HBaseSnapshotter(val system: ActorSystem, val pluginPersistenceSettings: P
   type AsyncBaseRows = JArrayList[JArrayList[KeyValue]]
 
   /** Snapshots we're in progress of saving */
-  //  private var saving = immutable.Set.empty[SnapshotMetadata]
+  private var saving = immutable.Set.empty[SnapshotMetadata]
 
   import Columns._
   import RowTypeMarkers._
@@ -46,7 +46,7 @@ class HBaseSnapshotter(val system: ActorSystem, val pluginPersistenceSettings: P
     //    log.debug("Loading async for processorId: [{}] start: {}, end: {}", processorId, start.toKeyString, stop.toKeyString)
     scanner.setStartKey(start.toBytes)
     scanner.setStopKey(stop.toBytes)
-    scanner.setKeyRegexp(RowKey.patternForProcessor(processorId))
+//    scanner.setKeyRegexp(RowKey.patternForProcessor(processorId))
     //    log.debug("Loading async for processorId: [{}] keyRegexp: {}", processorId, RowKey.patternForProcessor(processorId))
 
     val promise = Promise[Option[SelectedSnapshot]]()
@@ -83,7 +83,7 @@ class HBaseSnapshotter(val system: ActorSystem, val pluginPersistenceSettings: P
 
   def saveAsync(meta: SnapshotMetadata, snapshot: Any): Future[Unit] = {
     //    log.debug("Saving async, of {}", meta)
-    //    saving += meta
+    saving += meta
 
     serialize(Snapshot(snapshot)) match {
       case Success(serializedSnapshot) =>
@@ -100,12 +100,12 @@ class HBaseSnapshotter(val system: ActorSystem, val pluginPersistenceSettings: P
 
   def saved(meta: SnapshotMetadata): Unit = {
     //    log.debug("Saved: {}", meta)
-    //    saving -= meta
+    saving -= meta
   }
 
   def delete(meta: SnapshotMetadata): Unit = {
     //    log.debug("Deleting: {}", meta)
-    //    saving -= meta
+    saving -= meta
     executeDelete(RowKey(meta.processorId, meta.sequenceNr).toBytes)
   }
 
@@ -119,7 +119,7 @@ class HBaseSnapshotter(val system: ActorSystem, val pluginPersistenceSettings: P
 
     scanner.setStartKey(start.toBytes)
     scanner.setStopKey(stop.toBytes)
-    scanner.setKeyRegexp(RowKey.patternForProcessor(processorId))
+//    scanner.setKeyRegexp(RowKey.patternForProcessor(processorId))
 
     def handleRows(in: AnyRef): Future[Unit] = in match {
       case null =>
