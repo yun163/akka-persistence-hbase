@@ -35,8 +35,14 @@ object RowKey {
     RowKey(processorId, 0)
 
   /** Scan end key, similar to: `999~id~toSequenceNr` */
-  def toKeyForProcessor(processorId: String, toSequenceNr: Long)(implicit journalConfig: PluginPersistenceSettings) =
-    Bytes.toBytes(s"""${"9" * ROW_KEY_PARTITION_SALT_LEN}~${padId(processorId, ROW_KEY_PRSOR_ID_LEN_MAX)}~${padNum(toSequenceNr, ROW_KEY_SEQ_NUM_LEN)}""")
+  def toKeyForProcessor(processorId: String, toSequenceNr: Long)(implicit journalConfig: PluginPersistenceSettings) = {
+    // seqNum + 1 to make hbase query include the last key, because hbse client's endKey is excluded
+    val toSeqNr: Long = toSequenceNr match {
+      case num if num < Long.MaxValue => num + 1
+      case _ => Long.MaxValue
+    }
+    Bytes.toBytes(s"""${"9" * ROW_KEY_PARTITION_SALT_LEN}~${padId(processorId, ROW_KEY_PRSOR_ID_LEN_MAX)}~${padNum(toSeqNr, ROW_KEY_SEQ_NUM_LEN)}""")
+  }
 
   /** Last key possible, similar to: `999~id~Long.MaxValue` */
   def lastForProcessor(processorId: String)(implicit journalConfig: PluginPersistenceSettings) =
