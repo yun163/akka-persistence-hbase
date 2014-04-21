@@ -1,8 +1,8 @@
 package akka.persistence.hbase.journal
 
-import org.hbase.async.HBaseClient
 import akka.persistence.PersistenceSettings
 import java.util.concurrent.atomic.AtomicReference
+import org.hbase.async.HBaseClient
 
 object HBaseClientFactory {
 
@@ -27,8 +27,16 @@ object HBaseClientFactory {
     hbaseClient
   }
 
-  def reset() {
-    client set null
+  def shutDown() {
+    if (client.get() != null) {
+      val hbaseClient = client.get()
+      client set null
+      try {
+        hbaseClient.shutdown()
+      } catch {
+        case e: Exception => System.err.println(s"Caught Exception in hbaseClient shutdown : ${e.getMessage}")
+      }
+    }
   }
 
 }

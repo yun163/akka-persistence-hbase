@@ -1,13 +1,13 @@
 package akka.persistence.hbase.journal
 
-import akka.persistence.journal.AsyncWriteJournal
-import akka.persistence.{ PersistenceSettings, PersistentConfirmation, PersistentId, PersistentRepr }
-import scala.concurrent._
 import akka.actor.{ Actor, ActorLogging }
-import org.apache.hadoop.hbase.util.Bytes
-import scala.collection.immutable
 import akka.persistence.hbase.common._
 import akka.persistence.hbase.common.Const._
+import akka.persistence.journal.AsyncWriteJournal
+import akka.persistence.{ PersistenceSettings, PersistentConfirmation, PersistentId, PersistentRepr }
+import org.apache.hadoop.hbase.util.Bytes
+import scala.collection.immutable
+import scala.concurrent._
 
 /**
  * Asyncronous HBase Journal.
@@ -53,6 +53,13 @@ class HBaseAsyncWriteJournal extends Actor with ActorLogging
         Array(toBytes(processorId), toBytes(sequenceNr), toBytes(AcceptedMarker), persistentToBytes(p))
       )
     }
+    // Only for test
+    //    flushWrites()
+    //    Future.sequence(futures) map {
+    //      case _ =>
+    //        context.system.eventStream.publish(FinishedWrites(persistentBatch.size))
+    //    }
+    // Online environment
     Future.sequence(futures) map {
       case _ =>
         if (publishTestingEvents) {
@@ -96,7 +103,7 @@ class HBaseAsyncWriteJournal extends Actor with ActorLogging
     val scanner = newScanner()
     scanner.setStartKey(RowKey.firstForProcessor(processorId).toBytes)
     scanner.setStopKey(RowKey.toKeyForProcessor(processorId, toSequenceNr))
-//    scanner.setKeyRegexp(RowKey.patternForProcessor(processorId))
+    //    scanner.setKeyRegexp(RowKey.patternForProcessor(processorId))
 
     def handleRows(in: AnyRef): Future[Unit] = in match {
       case null =>
@@ -137,7 +144,7 @@ class HBaseAsyncWriteJournal extends Actor with ActorLogging
   override def postStop(): Unit = {
     // client could be shutdown once at here, another user: HBaseSnapshotter should not shut down it,
     // for it may still be used here
-    client.shutdown()
+    HBaseClientFactory.shutDown()
     super.postStop()
   }
 }

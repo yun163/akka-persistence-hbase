@@ -2,13 +2,13 @@ package akka.persistence.hbase.journal
 
 import akka.persistence.PersistentRepr
 import akka.actor.{ ActorLogging, Actor }
-import scala.concurrent.Future
-import org.hbase.async.KeyValue
-import scala.collection.mutable
-import org.apache.hadoop.hbase.util.Bytes
 import akka.persistence.journal._
 import akka.persistence.hbase.common.{ Columns, RowKey, DeferredConversions }
+import org.hbase.async.KeyValue
+import org.apache.hadoop.hbase.util.Bytes
 import scala.annotation.switch
+import scala.collection.mutable
+import scala.concurrent.Future
 
 trait HBaseAsyncRecovery extends AsyncRecovery {
   this: Actor with ActorLogging with HBaseAsyncWriteJournal =>
@@ -64,7 +64,7 @@ trait HBaseAsyncRecovery extends AsyncRecovery {
     val scanner = newScanner()
     scanner.setStartKey(RowKey(processorId, fromSequenceNr).toBytes)
     scanner.setStopKey(RowKey.lastForProcessor(processorId))
-//    scanner.setKeyRegexp(RowKey.patternForProcessor(processorId))
+    //    scanner.setKeyRegexp(RowKey.patternForProcessor(processorId))
 
     def handleRows(in: AnyRef): Future[Long] = in match {
       case null =>

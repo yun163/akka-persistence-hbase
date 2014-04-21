@@ -2,17 +2,17 @@ package akka.persistence.hbase.snapshot
 
 import akka.actor.ActorSystem
 import akka.persistence.{ SelectedSnapshot, SnapshotSelectionCriteria, SnapshotMetadata }
-import scala.concurrent.{ Promise, Future }
-import org.hbase.async.{ KeyValue, HBaseClient }
-import org.apache.hadoop.hbase.util.Bytes._
 import akka.persistence.hbase.journal._
 import akka.persistence.hbase.common._
-import collection.JavaConverters._
-import java.util.{ ArrayList => JArrayList }
-import scala.collection.immutable
-import akka.persistence.serialization.Snapshot
-import scala.util.{ Failure, Success }
 import akka.persistence.hbase.common.TestingEventProtocol.DeletedSnapshotsFor
+import akka.persistence.serialization.Snapshot
+import java.util.{ ArrayList => JArrayList }
+import org.hbase.async.{ KeyValue, HBaseClient }
+import org.apache.hadoop.hbase.util.Bytes._
+import scala.util.{ Failure, Success }
+import scala.concurrent.{ Promise, Future }
+import scala.collection.immutable
+import scala.collection.JavaConverters._
 
 class HBaseSnapshotter(val system: ActorSystem, val pluginPersistenceSettings: PluginPersistenceSettings, val client: HBaseClient) extends HadoopSnapshotter
     with AsyncBaseUtils with DeferredConversions {
@@ -46,7 +46,7 @@ class HBaseSnapshotter(val system: ActorSystem, val pluginPersistenceSettings: P
     //    log.debug("Loading async for processorId: [{}] start: {}, end: {}", processorId, start.toKeyString, stop.toKeyString)
     scanner.setStartKey(start.toBytes)
     scanner.setStopKey(stop.toBytes)
-//    scanner.setKeyRegexp(RowKey.patternForProcessor(processorId))
+    //    scanner.setKeyRegexp(RowKey.patternForProcessor(processorId))
     //    log.debug("Loading async for processorId: [{}] keyRegexp: {}", processorId, RowKey.patternForProcessor(processorId))
 
     val promise = Promise[Option[SelectedSnapshot]]()
@@ -119,7 +119,7 @@ class HBaseSnapshotter(val system: ActorSystem, val pluginPersistenceSettings: P
 
     scanner.setStartKey(start.toBytes)
     scanner.setStopKey(stop.toBytes)
-//    scanner.setKeyRegexp(RowKey.patternForProcessor(processorId))
+    //    scanner.setKeyRegexp(RowKey.patternForProcessor(processorId))
 
     def handleRows(in: AnyRef): Future[Unit] = in match {
       case null =>
@@ -146,8 +146,9 @@ class HBaseSnapshotter(val system: ActorSystem, val pluginPersistenceSettings: P
   }
 
   override def postStop(): Unit = {
-    // client should not bed shutdown here, it's also used by HBaseAsyncWriteJournal which will shutdown it
-    // client.shutdown()
+    // client normally will not bed shutdown here, it's alsoused by HBaseAsyncWriteJournal which will shutdown it
+    // shutdown will check before shutdown, so shutdown here will be ok
+    HBaseClientFactory.shutDown()
   }
 
 }

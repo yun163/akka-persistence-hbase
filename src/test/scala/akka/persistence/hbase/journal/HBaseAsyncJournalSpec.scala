@@ -150,7 +150,7 @@ class HBaseAsyncJournalSpec extends TestKit(ActorSystem("test")) with ImplicitSe
 
   override protected def afterAll() {
 
-    HBaseClientFactory.reset()
+    HBaseClientFactory.shutDown()
 
     system.shutdown()
   }

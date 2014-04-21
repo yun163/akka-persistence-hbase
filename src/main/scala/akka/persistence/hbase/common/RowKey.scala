@@ -1,8 +1,8 @@
 package akka.persistence.hbase.common
 
-import org.apache.hadoop.hbase.util.Bytes
 import akka.persistence.hbase.journal.PluginPersistenceSettings
 import akka.persistence.hbase.common.Const._
+import org.apache.hadoop.hbase.util.Bytes
 
 case class RowKey(processorId: String, sequenceNr: Long)(implicit hBasePersistenceSettings: PluginPersistenceSettings) {
 

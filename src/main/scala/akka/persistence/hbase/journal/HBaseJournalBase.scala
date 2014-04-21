@@ -1,9 +1,9 @@
 package akka.persistence.hbase.journal
 
 import akka.actor.{ Actor, ActorLogging }
-import org.hbase.async.{ HBaseClient, KeyValue }
-import java.util.{ ArrayList => JArrayList }
 import akka.persistence.hbase.common.{ AsyncBaseUtils, HBaseSerialization }
+import java.util.{ ArrayList => JArrayList }
+import org.hbase.async.{ HBaseClient, KeyValue }
 import org.apache.hadoop.conf.Configuration
 
 // todo split into one API classes and register the impls as extensions

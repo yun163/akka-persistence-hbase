@@ -1,17 +1,17 @@
 package akka.persistence.hbase.snapshot
 
-import akka.persistence.{ SelectedSnapshot, SnapshotSelectionCriteria, SnapshotMetadata }
-import scala.concurrent.Future
-import org.apache.hadoop.fs.{ FileStatus, Path, FileSystem }
 import akka.actor.ActorSystem
+import akka.persistence.hbase.common.HdfsSnapshotDescriptor
 import akka.persistence.hbase.journal.PluginPersistenceSettings
-import org.apache.hadoop.conf.Configuration
-import org.apache.commons.io.FilenameUtils
-import scala.util.{ Try, Failure, Success }
+import akka.persistence.{ SelectedSnapshot, SnapshotSelectionCriteria, SnapshotMetadata }
 import akka.persistence.serialization.Snapshot
-import scala.annotation.tailrec
 import java.io.{ BufferedOutputStream, Closeable, BufferedInputStream }
 import org.apache.commons.io.IOUtils
+import org.apache.hadoop.conf.Configuration
+import org.apache.hadoop.fs.{ Path, FileSystem }
+import scala.concurrent.Future
+import scala.util.{ Try, Failure, Success }
+import scala.annotation.tailrec
 import scala.collection.immutable
 
 /**
@@ -119,30 +119,6 @@ class HdfsSnapshotter(val system: ActorSystem, settings: PluginPersistenceSettin
     try fun(stream) finally stream.close()
 
   private def newHdfsPath(desc: HdfsSnapshotDescriptor) = new Path(settings.snapshotHdfsDir, desc.toFilename)
-
-  case class HdfsSnapshotDescriptor(processorId: String, seqNumber: Long, timestamp: Long) {
-    def toFilename = s"snapshot~$processorId~$seqNumber~$timestamp"
-  }
-
-  object HdfsSnapshotDescriptor {
-    def SnapshotNamePattern(processorId: String): scala.util.matching.Regex = {
-      s"""snapshot~$processorId~([0-9]+)~([0-9]+)""".r
-    }
-
-    def apply(meta: SnapshotMetadata): HdfsSnapshotDescriptor =
-      HdfsSnapshotDescriptor(meta.processorId, meta.sequenceNr, meta.timestamp)
-
-    def from(status: FileStatus, processorId: String): Option[HdfsSnapshotDescriptor] = {
-      val namePattern = SnapshotNamePattern(processorId)
-      FilenameUtils.getBaseName(status.getPath.toString) match {
-        case namePattern(seqNumber, timestamp) =>
-          Some(HdfsSnapshotDescriptor(processorId, seqNumber.toLong, timestamp.toLong))
-
-        case _ =>
-          None
-      }
-    }
-  }
 
   override def postStop(): Unit = {
     fs.close()

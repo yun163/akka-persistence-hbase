@@ -1,11 +1,11 @@
 package akka.persistence.hbase.snapshot
 
-import akka.persistence.{ SelectedSnapshot, SnapshotSelectionCriteria, SnapshotMetadata }
-import scala.concurrent.Future
 import akka.actor.{ ActorSystem, Extension }
-import scala.util.Try
-import akka.persistence.serialization.Snapshot
 import akka.serialization.SerializationExtension
+import akka.persistence.{ SelectedSnapshot, SnapshotSelectionCriteria, SnapshotMetadata }
+import akka.persistence.serialization.Snapshot
+import scala.concurrent.Future
+import scala.util.Try
 
 /**
  * Common API for Snapshotter implementations. Used to provide an interface for the Extension.

@@ -1,11 +1,11 @@
 package akka.persistence.hbase.common
 
-import org.hbase.async.{ HBaseClient, PutRequest, DeleteRequest, KeyValue }
+import akka.persistence.hbase.journal.RowTypeMarkers._
 import java.{ util => ju }
+import org.hbase.async.{ HBaseClient, PutRequest, DeleteRequest, KeyValue }
 import org.apache.hadoop.hbase.util.Bytes
 import scala.concurrent.{ ExecutionContext, Future }
 import scala.Array
-import akka.persistence.hbase.journal.RowTypeMarkers._
 
 trait AsyncBaseUtils {
 

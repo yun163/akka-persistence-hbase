@@ -1,10 +1,9 @@
 package akka.persistence.hbase.snapshot
 
-import akka.persistence.snapshot.SnapshotStore
-import akka.persistence.{ SelectedSnapshot, SnapshotSelectionCriteria }
-import scala.concurrent.Future
-import akka.persistence.SnapshotMetadata
 import akka.actor.ActorLogging
+import akka.persistence.{ SelectedSnapshot, SnapshotSelectionCriteria, SnapshotMetadata }
+import akka.persistence.snapshot.SnapshotStore
+import scala.concurrent.Future
 
 class HadoopSnapshotStore extends SnapshotStore with ActorLogging {
 
