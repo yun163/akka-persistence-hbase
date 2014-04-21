@@ -103,7 +103,7 @@ class HBaseAsyncWriteJournal extends Actor with ActorLogging
     val scanner = newScanner()
     scanner.setStartKey(RowKey.firstForProcessor(processorId).toBytes)
     scanner.setStopKey(RowKey.toKeyForProcessor(processorId, toSequenceNr))
-    //    scanner.setKeyRegexp(RowKey.patternForProcessor(processorId))
+    scanner.setKeyRegexp(RowKey.patternForProcessor(processorId))
 
     def handleRows(in: AnyRef): Future[Unit] = in match {
       case null =>

@@ -46,7 +46,7 @@ class HBaseSnapshotter(val system: ActorSystem, val pluginPersistenceSettings: P
     //    log.debug("Loading async for processorId: [{}] start: {}, end: {}", processorId, start.toKeyString, stop.toKeyString)
     scanner.setStartKey(start.toBytes)
     scanner.setStopKey(stop.toBytes)
-    //    scanner.setKeyRegexp(RowKey.patternForProcessor(processorId))
+    scanner.setKeyRegexp(RowKey.patternForProcessor(processorId))
     //    log.debug("Loading async for processorId: [{}] keyRegexp: {}", processorId, RowKey.patternForProcessor(processorId))
 
     val promise = Promise[Option[SelectedSnapshot]]()
@@ -119,7 +119,7 @@ class HBaseSnapshotter(val system: ActorSystem, val pluginPersistenceSettings: P
 
     scanner.setStartKey(start.toBytes)
     scanner.setStopKey(stop.toBytes)
-    //    scanner.setKeyRegexp(RowKey.patternForProcessor(processorId))
+    scanner.setKeyRegexp(RowKey.patternForProcessor(processorId))
 
     def handleRows(in: AnyRef): Future[Unit] = in match {
       case null =>
