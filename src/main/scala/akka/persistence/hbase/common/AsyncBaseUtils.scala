@@ -54,7 +54,7 @@ trait AsyncBaseUtils {
    * Sends the buffered commands to HBase. Does not guarantee that they "complete" right away.
    */
   def flushWrites() {
-    client.flush()
+    //    client.flush()
   }
 
   protected def newScanner() = {

@@ -121,6 +121,10 @@ class HdfsSnapshotter(val system: ActorSystem, settings: PluginPersistenceSettin
   private def newHdfsPath(desc: HdfsSnapshotDescriptor) = new Path(settings.snapshotHdfsDir, desc.toFilename)
 
   override def postStop(): Unit = {
-    fs.close()
+    //    try {
+    //      fs.close()
+    //    } catch {
+    //      case e: Exception => e.printStackTrace()
+    //    }
   }
 }
