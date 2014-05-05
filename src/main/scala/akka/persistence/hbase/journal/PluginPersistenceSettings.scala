@@ -18,6 +18,7 @@ case class PluginPersistenceSettings(
   family: String,
   partitionCount: Int,
   scanBatchSize: Int,
+  clientFlushInterval: Int,
   pluginDispatcherId: String,
   replayDispatcherId: String,
   publishTestingEvents: Boolean,
@@ -27,17 +28,22 @@ case class PluginPersistenceSettings(
 object PluginPersistenceSettings {
   def apply(rootConfig: Config, persistenceConf: String): PluginPersistenceSettings = {
     val persistenceConfig = rootConfig.getConfig(persistenceConf)
+    def getString(path: String): String = persistenceConfig.getString(path)
+    def getInt(path: String): Int = persistenceConfig.getInt(path)
+    def getBoolean(path: String): Boolean = persistenceConfig.getBoolean(path)
+    def withCheck[T](path: String, default: T)(getConfig: String => T): T = if (persistenceConfig.hasPath(path)) getConfig(path) else default
     PluginPersistenceSettings(
-      zookeeperQuorum = persistenceConfig.getString("hbase.zookeeper.quorum"),
-      table = persistenceConfig.getString("table"),
-      family = persistenceConfig.getString("family"),
-      partitionCount = persistenceConfig.getInt("partition.count"),
-      scanBatchSize = persistenceConfig.getInt("scan-batch-size"),
-      pluginDispatcherId = persistenceConfig.getString("plugin-dispatcher"),
-      replayDispatcherId = persistenceConfig.getString("replay-dispatcher"),
-      publishTestingEvents = persistenceConfig.getBoolean("publish-testing-events"),
-      snapshotHdfsDir = persistenceConfig.getString("snapshot-dir"),
-      hdfsDefaultName = persistenceConfig.getString("hdfs-default-name")
+      zookeeperQuorum = withCheck("hbase.zookeeper.quorum", "localhost:2181")(getString),
+      table = withCheck("table", "")(getString),
+      family = withCheck("family", "")(getString),
+      partitionCount = withCheck("partition.count", 1)(getInt),
+      scanBatchSize = withCheck("scan-batch-size", 50)(getInt),
+      clientFlushInterval = withCheck("client-flush-interval", 0)(getInt),
+      pluginDispatcherId = withCheck("plugin-dispatcher", "")(getString),
+      replayDispatcherId = withCheck("replay-dispatcher", "")(getString),
+      publishTestingEvents = withCheck("publish-testing-events", false)(getBoolean),
+      snapshotHdfsDir = withCheck("snapshot-dir", "")(getString),
+      hdfsDefaultName = withCheck("hdfs-default-name", "")(getString)
     )
   }
 }

@@ -44,7 +44,7 @@ class HBaseAsyncWriteJournal extends Actor with ActorLogging
 
   override def asyncWriteMessages(persistentBatch: immutable.Seq[PersistentRepr]): Future[Unit] = {
     //    log.debug(s"Write async for ${persistentBatch.size} presistent messages")
-    val futures = persistentBatch map { p =>
+    persistentBatch map { p =>
       import p._
 
       executePut(
@@ -53,21 +53,6 @@ class HBaseAsyncWriteJournal extends Actor with ActorLogging
         Array(toBytes(processorId), toBytes(sequenceNr), toBytes(AcceptedMarker), persistentToBytes(p))
       )
     }
-    // Only for test
-    //    flushWrites()
-    //    Future.sequence(futures) map {
-    //      case _ =>
-    //        context.system.eventStream.publish(FinishedWrites(persistentBatch.size))
-    //    }
-    // Online environment
-    //    Future.sequence(futures) map {
-    //      case _ =>
-    //        if (publishTestingEvents) {
-    //          context.system.eventStream.publish(FinishedWrites(persistentBatch.size))
-    //        }
-    //        println(s"""${">" * 20} asyncWriteMessages cost ${System.currentTimeMillis() - start}""")
-    //        flushWrites()
-    //    }
     Future(())
   }
 

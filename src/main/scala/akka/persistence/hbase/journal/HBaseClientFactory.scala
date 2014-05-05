@@ -8,6 +8,7 @@ object HBaseClientFactory {
 
   /** based on the docs, there should always be only one instance, reused even if we had more tables */
   private val client = new AtomicReference[HBaseClient]()
+  implicit def int2short(intVal: Int) = java.lang.Short.parseShort(intVal.toString)
 
   /** Always returns the same client */
   def getClient(config: PluginPersistenceSettings, persistenceSettings: PersistenceSettings): HBaseClient = {
@@ -23,7 +24,7 @@ object HBaseClientFactory {
     //    ).max.toShort
     val hbaseClient = client.get()
     // set Flush Interval to 0 to disable the batch flush, will flush instantly
-    hbaseClient.setFlushInterval(0)
+    hbaseClient.setFlushInterval(config.clientFlushInterval)
     hbaseClient
   }
 
