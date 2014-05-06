@@ -17,7 +17,7 @@ import scala.collection.immutable
 /**
  * Dump and read Snapshots to/from HDFS.
  */
-class HdfsSnapshotter(val system: ActorSystem, settings: PluginPersistenceSettings)
+class HdfsSnapshotter(val system: ActorSystem, val settings: PluginPersistenceSettings)
     extends HadoopSnapshotter {
 
   val log = system.log
@@ -26,7 +26,7 @@ class HdfsSnapshotter(val system: ActorSystem, settings: PluginPersistenceSettin
 
   private val conf = new Configuration
   conf.set("fs.default.name", settings.hdfsDefaultName)
-  private val fs = FileSystem.get(conf) // todo allow passing in all conf?
+  private val fs = FileSystem.get(conf) // TODO: allow passing in all conf?
 
   /** Snapshots we're in progress of saving */
   private var saving = immutable.Set.empty[SnapshotMetadata]
@@ -50,7 +50,7 @@ class HdfsSnapshotter(val system: ActorSystem, settings: PluginPersistenceSettin
         }
     }
 
-    // todo make configurable how many times we retry if deserialization fails (that's the take here)
+    // TODO: make configurable how many times we retry if deserialization fails (that's the take here)
     Future { deserializeOrTryOlder(snapshotMetas.take(3)) }
   }
 

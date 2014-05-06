@@ -4,7 +4,7 @@ import akka.persistence.hbase.journal.PluginPersistenceSettings
 import akka.persistence.hbase.common.Const._
 import org.apache.hadoop.hbase.util.Bytes
 
-case class RowKey(processorId: String, sequenceNr: Long)(implicit hBasePersistenceSettings: PluginPersistenceSettings) {
+case class RowKey(processorId: String, sequenceNr: Long)(implicit settings: PluginPersistenceSettings) {
 
   def part = partition(sequenceNr)
   val toBytes = Bytes.toBytes(toKeyString)
@@ -14,7 +14,7 @@ case class RowKey(processorId: String, sequenceNr: Long)(implicit hBasePersisten
 
   /** Used to avoid writing all data to the same region - see "hot region" problem */
   private def partition(sequenceNr: Long): Long =
-    sequenceNr % hBasePersistenceSettings.partitionCount
+    sequenceNr % settings.partitionCount
 }
 
 object RowKey {

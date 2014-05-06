@@ -23,7 +23,8 @@ case class PluginPersistenceSettings(
   replayDispatcherId: String,
   publishTestingEvents: Boolean,
   snapshotHdfsDir: String,
-  hdfsDefaultName: String)
+  hdfsDefaultName: String,
+  encryptionSettingString: String)
 
 object PluginPersistenceSettings {
   def apply(rootConfig: Config, persistenceConf: String): PluginPersistenceSettings = {
@@ -43,7 +44,8 @@ object PluginPersistenceSettings {
       replayDispatcherId = withCheck("replay-dispatcher", "")(getString),
       publishTestingEvents = withCheck("publish-testing-events", false)(getBoolean),
       snapshotHdfsDir = withCheck("snapshot-dir", "")(getString),
-      hdfsDefaultName = withCheck("hdfs-default-name", "")(getString)
+      hdfsDefaultName = withCheck("hdfs-default-name", "")(getString),
+      encryptionSettingString = withCheck("encryption-settings", "")(getString)
     )
   }
 }

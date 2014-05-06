@@ -20,27 +20,27 @@ trait HBaseAsyncRecovery extends AsyncRecovery {
 
   // async recovery plugin impl
 
-  // todo can be improved to to N parallel scans for each "partition" we created, instead of one "big scan"
+  // TODO: can be improved to to N parallel scans for each "partition" we created, instead of one "big scan"
   override def asyncReplayMessages(processorId: String, fromSequenceNr: Long, toSequenceNr: Long, max: Long)(replayCallback: PersistentRepr => Unit): Future[Unit] = {
-    //    log.debug(s"Async replay for processorId [$processorId], from sequenceNr: [$fromSequenceNr], to sequenceNr: [$toSequenceNr]")
+    // log.debug(s"Async replay for processorId [$processorId], from sequenceNr: [$fromSequenceNr], to sequenceNr: [$toSequenceNr]")
 
     val scanner = newScanner()
     scanner.setStartKey(RowKey(processorId, fromSequenceNr).toBytes)
     scanner.setStopKey(RowKey.toKeyForProcessor(processorId, toSequenceNr))
     scanner.setKeyRegexp(RowKey.patternForProcessor(processorId))
 
-    scanner.setMaxNumRows(hBasePersistenceSettings.scanBatchSize)
+    scanner.setMaxNumRows(settings.scanBatchSize)
 
     val callback = replay(replayCallback) _
 
     def handleRows(in: AnyRef): Future[Long] = in match {
       case null =>
-        //        log.debug(s"replayAsync for processorId [$processorId] - finished!")
+        // log.debug(s"replayAsync for processorId [$processorId] - finished!")
         scanner.close()
         Future(0L)
 
       case rows: AsyncBaseRows =>
-        //        log.debug(s"replayAsync for processorId [$processorId] - got ${rows.size} rows...")
+        // log.debug(s"replayAsync for processorId [$processorId] - got ${rows.size} rows...")
 
         val seqNrs = for {
           row <- rows.asScala
@@ -57,9 +57,9 @@ trait HBaseAsyncRecovery extends AsyncRecovery {
     go()
   }
 
-  // todo make this multiple scans, on each partition instead of one big scan
+  // TODO: make this multiple scans, on each partition instead of one big scan
   override def asyncReadHighestSequenceNr(processorId: String, fromSequenceNr: Long): Future[Long] = {
-    //    log.debug(s"Async read for highest sequence number for processorId: [$processorId] (hint, seek from  nr: [$fromSequenceNr])")
+    // log.debug(s"Async read for highest sequence number for processorId: [$processorId] (hint, seek from  nr: [$fromSequenceNr])")
 
     val scanner = newScanner()
     scanner.setStartKey(RowKey(processorId, fromSequenceNr).toBytes)
@@ -68,12 +68,12 @@ trait HBaseAsyncRecovery extends AsyncRecovery {
 
     def handleRows(in: AnyRef): Future[Long] = in match {
       case null =>
-        //        log.debug(s"AsyncReadHighestSequenceNr for processorId [$processorId] finished")
+        // log.debug(s"AsyncReadHighestSequenceNr for processorId [$processorId] finished")
         scanner.close()
         Future(0)
 
       case rows: AsyncBaseRows =>
-        //        log.debug(s"AsyncReadHighestSequenceNr for processorId [$processorId] - got ${rows.size} rows...")
+        // log.debug(s"AsyncReadHighestSequenceNr for processorId [$processorId] - got ${rows.size} rows...")
 
         val maxSoFar = rows.asScala.map(cols => sequenceNr(cols.asScala)).max
 
@@ -94,7 +94,7 @@ trait HBaseAsyncRecovery extends AsyncRecovery {
     val markerKeyValue = findColumn(columns, Marker)
     val marker = Bytes.toString(markerKeyValue.value)
 
-    // todo make this a @switch
+    // TODO: make this a @switch
     (markerKeyValue.value.head.toChar: @switch) match {
       case 'A' =>
         replayCallback(msg)

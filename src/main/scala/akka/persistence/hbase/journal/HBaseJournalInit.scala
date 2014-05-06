@@ -57,7 +57,7 @@ object HBaseJournalInit {
     val persistenseConfig = config.getConfig(persistenceConfig)
     val hbaseConfig = persistenseConfig.getConfig("hbase")
 
-    // todo does not cover all cases
+    // TODO: does not cover all cases
     hbaseConfig.entrySet().asScala foreach { e =>
       c.set(hbaseKey(e.getKey), e.getValue.unwrapped.toString)
     }
