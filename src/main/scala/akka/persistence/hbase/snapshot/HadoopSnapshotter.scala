@@ -1,11 +1,10 @@
 package akka.persistence.hbase.snapshot
 
 import akka.actor.{ ActorSystem, Extension }
-import akka.serialization.SerializationExtension
 import akka.persistence.{ SelectedSnapshot, SnapshotSelectionCriteria, SnapshotMetadata }
 import akka.persistence.serialization.Snapshot
-import akka.persistence.hbase.journal.PluginPersistenceSettings
 import akka.persistence.hbase.common.EncryptingSerializationExtension
+import akka.persistence.hbase.journal.PluginPersistenceSettings
 import scala.concurrent.Future
 import scala.util.Try
 
@@ -17,7 +16,7 @@ trait HadoopSnapshotter extends Extension {
   def system: ActorSystem
   val settings: PluginPersistenceSettings
 
-  protected lazy val serialization = EncryptingSerializationExtension(system, settings.encryptionSettingString)
+  protected lazy val serialization = EncryptingSerializationExtension(system, system.settings.config.getString("akka.persistence.encryption-settings"))
 
   def loadAsync(processorId: String, criteria: SnapshotSelectionCriteria): Future[Option[SelectedSnapshot]]
 
