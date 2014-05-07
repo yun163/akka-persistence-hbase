@@ -41,11 +41,13 @@ object RowKey {
       case num if num < Long.MaxValue => num + 1
       case _ => Long.MaxValue
     }
-    Bytes.toBytes(s"""${"9" * ROW_KEY_PARTITION_SALT_LEN}~${padId(processorId, ROW_KEY_PRSOR_ID_LEN_MAX)}~${padNum(toSeqNr, ROW_KEY_SEQ_NUM_LEN)}""")
+    Bytes.toBytes(s"""${"0" * ROW_KEY_PARTITION_SALT_LEN}~${padId(processorId, ROW_KEY_PRSOR_ID_LEN_MAX)}~${padNum(toSeqNr, ROW_KEY_SEQ_NUM_LEN)}""")
+    //    Bytes.toBytes(s"""${"9" * ROW_KEY_PARTITION_SALT_LEN}~${padId(processorId, ROW_KEY_PRSOR_ID_LEN_MAX)}~${padNum(toSeqNr, ROW_KEY_SEQ_NUM_LEN)}""")
   }
 
   /** Last key possible, similar to: `999~id~Long.MaxValue` */
   def lastForProcessor(processorId: String)(implicit journalConfig: PluginPersistenceSettings) =
-    Bytes.toBytes(s"""${"9" * ROW_KEY_PARTITION_SALT_LEN}~${padId(processorId, ROW_KEY_PRSOR_ID_LEN_MAX)}~${padNum(Long.MaxValue, ROW_KEY_SEQ_NUM_LEN)}""")
+    Bytes.toBytes(s"""${"0" * ROW_KEY_PARTITION_SALT_LEN}~${padId(processorId, ROW_KEY_PRSOR_ID_LEN_MAX)}~${padNum(Long.MaxValue, ROW_KEY_SEQ_NUM_LEN)}""")
+  //    Bytes.toBytes(s"""${"9" * ROW_KEY_PARTITION_SALT_LEN}~${padId(processorId, ROW_KEY_PRSOR_ID_LEN_MAX)}~${padNum(Long.MaxValue, ROW_KEY_SEQ_NUM_LEN)}""")
 
 }
