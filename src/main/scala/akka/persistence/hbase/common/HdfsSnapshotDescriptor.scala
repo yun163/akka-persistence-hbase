@@ -22,8 +22,7 @@ object HdfsSnapshotDescriptor {
       case namePattern(seqNumber, timestamp) =>
         Some(HdfsSnapshotDescriptor(processorId, seqNumber.toLong, timestamp.toLong))
 
-      case _ =>
-        None
+      case _ => None
     }
   }
 }

@@ -23,15 +23,15 @@ class HBaseAsyncWriteJournal extends Actor with ActorLogging
 
   private lazy val config = context.system.settings.config
 
-  implicit override lazy val hBasePersistenceSettings = PluginPersistenceSettings(config, JOURNAL_CONFIG)
+  implicit override lazy val settings = PluginPersistenceSettings(config, JOURNAL_CONFIG)
 
   lazy val hadoopConfig = HBaseJournalInit.getHBaseConfig(config, JOURNAL_CONFIG)
 
-  lazy val client = HBaseClientFactory.getClient(hBasePersistenceSettings, new PersistenceSettings(config.getConfig("akka.persistence")))
+  lazy val client = HBaseClientFactory.getClient(settings, new PersistenceSettings(config.getConfig("akka.persistence")))
 
-  lazy val publishTestingEvents = hBasePersistenceSettings.publishTestingEvents
+  lazy val publishTestingEvents = settings.publishTestingEvents
 
-  implicit override val executionContext = context.system.dispatchers.lookup(hBasePersistenceSettings.pluginDispatcherId)
+  implicit override val executionContext = context.system.dispatchers.lookup(settings.pluginDispatcherId)
 
   HBaseJournalInit.createTable(config, Const.JOURNAL_CONFIG)
 
@@ -43,7 +43,7 @@ class HBaseAsyncWriteJournal extends Actor with ActorLogging
   // journal plugin api impl -------------------------------------------------------------------------------------------
 
   override def asyncWriteMessages(persistentBatch: immutable.Seq[PersistentRepr]): Future[Unit] = {
-    //    log.debug(s"Write async for ${persistentBatch.size} presistent messages")
+    // log.debug(s"Write async for ${persistentBatch.size} presistent messages")
     persistentBatch map { p =>
       import p._
 
@@ -57,7 +57,7 @@ class HBaseAsyncWriteJournal extends Actor with ActorLogging
   }
 
   override def asyncWriteConfirmations(confirmations: immutable.Seq[PersistentConfirmation]): Future[Unit] = {
-    //    log.debug(s"AsyncWriteConfirmations for ${confirmations.size} messages")
+    // log.debug(s"AsyncWriteConfirmations for ${confirmations.size} messages")
 
     val fs = confirmations map { confirm =>
       confirmAsync(confirm.processorId, confirm.sequenceNr, confirm.channelId)
@@ -69,7 +69,7 @@ class HBaseAsyncWriteJournal extends Actor with ActorLogging
   }
 
   override def asyncDeleteMessages(messageIds: immutable.Seq[PersistentId], permanent: Boolean): Future[Unit] = {
-    //    log.debug(s"Async delete [${messageIds.size}] messages, premanent: $permanent")
+    // log.debug(s"Async delete [${messageIds.size}] messages, premanent: $permanent")
 
     val doDelete = deleteFunctionFor(permanent)
 
@@ -84,7 +84,7 @@ class HBaseAsyncWriteJournal extends Actor with ActorLogging
   }
 
   override def asyncDeleteMessagesTo(processorId: String, toSequenceNr: Long, permanent: Boolean): Future[Unit] = {
-    //    log.debug(s"AsyncDeleteMessagesTo for processorId: [$processorId] to sequenceNr: $toSequenceNr, premanent: $permanent")
+    // log.debug(s"AsyncDeleteMessagesTo for processorId: [$processorId] to sequenceNr: $toSequenceNr, premanent: $permanent")
     val doDelete = deleteFunctionFor(permanent)
 
     val scanner = newScanner()

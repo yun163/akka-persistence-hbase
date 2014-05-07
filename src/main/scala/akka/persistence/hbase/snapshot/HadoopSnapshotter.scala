@@ -1,9 +1,10 @@
 package akka.persistence.hbase.snapshot
 
 import akka.actor.{ ActorSystem, Extension }
-import akka.serialization.SerializationExtension
 import akka.persistence.{ SelectedSnapshot, SnapshotSelectionCriteria, SnapshotMetadata }
 import akka.persistence.serialization.Snapshot
+import akka.persistence.hbase.common.EncryptingSerializationExtension
+import akka.persistence.hbase.journal.PluginPersistenceSettings
 import scala.concurrent.Future
 import scala.util.Try
 
@@ -13,7 +14,9 @@ import scala.util.Try
 trait HadoopSnapshotter extends Extension {
 
   def system: ActorSystem
-  protected val serialization = SerializationExtension(system)
+  val settings: PluginPersistenceSettings
+
+  protected lazy val serialization = EncryptingSerializationExtension(system, system.settings.config.getString("akka.persistence.encryption-settings"))
 
   def loadAsync(processorId: String, criteria: SnapshotSelectionCriteria): Future[Option[SelectedSnapshot]]
 
@@ -26,10 +29,10 @@ trait HadoopSnapshotter extends Extension {
   def delete(processorId: String, criteria: SnapshotSelectionCriteria): Unit
 
   protected def deserialize(bytes: Array[Byte]): Try[Snapshot] =
-    serialization.deserialize(bytes, classOf[Snapshot])
+    Try(serialization.deserialize(bytes, classOf[Snapshot]))
 
   protected def serialize(snapshot: Snapshot): Try[Array[Byte]] =
-    serialization.serialize(snapshot)
+    Try(serialization.serialize(snapshot))
 
   def postStop(): Unit
 }

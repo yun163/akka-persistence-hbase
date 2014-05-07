@@ -8,3 +8,7 @@ src/test/resources/.gitkeep
 
 # local snapshots
 snapshots
+.classpath
+.cache
+
+.project
