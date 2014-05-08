@@ -27,24 +27,14 @@ class Encryptor(key: Array[Byte]) {
   }
 }
 
-object EncryptingSerializationExtension {
-  private var ser: Serialization = null
-  private var encryptors: Map[Int, Encryptor] = null
-  private var defaultEncryptor: Encryptor = null
-  private var defaultVersion: Int = -1
-
-  def apply(system: ActorSystem, settingString: String) = {
-    ser = SerializationExtension(system)
-    val config = (new Eval()(settingString)).asInstanceOf[EncryptionConfig]
-
-    assert(config.keyMap.nonEmpty)
-
-    //    println("EncryptingSerializationExtension config:" + "*" * 100 + config)
-    encryptors = config.keyMap.map(kv => (kv._1, new Encryptor(kv._2)))
-    defaultVersion = encryptors.keySet.max
-    defaultEncryptor = encryptors(defaultVersion)
-    this
-  }
+class EncryptingSerializationExtension(system: ActorSystem, settingString: String) {
+  private val ser: Serialization = SerializationExtension(system)
+  val config = (new Eval()(settingString)).asInstanceOf[EncryptionConfig]
+  assert(config.keyMap.nonEmpty)
+  private val encryptors: Map[Int, Encryptor] = config.keyMap.map(kv => (kv._1, new Encryptor(kv._2)))
+  private val defaultVersion: Int = encryptors.keySet.max
+  private val defaultEncryptor: Encryptor = encryptors(defaultVersion)
+  //    println("EncryptingSerializationExtension config:" + "*" * 100 + config)
 
   def serialize(o: AnyRef) = {
     val raw = ser.serialize(o).get
@@ -67,6 +57,12 @@ object EncryptingSerializationExtension {
     val raw = encryptor.decrypt(bytes.drop(4))
     //    println("raw after decryption: " + raw.map(_.toChar))
     ser.deserialize(raw, clazz).get
+  }
+}
+
+object EncryptingSerializationExtension {
+  def apply(system: ActorSystem, settingString: String): EncryptingSerializationExtension = {
+    new EncryptingSerializationExtension(system, settingString)
   }
 }
 
