@@ -44,15 +44,18 @@ class HBaseAsyncWriteJournal extends Actor with ActorLogging
 
   override def asyncWriteMessages(persistentBatch: immutable.Seq[PersistentRepr]): Future[Unit] = {
     // log.debug(s"Write async for ${persistentBatch.size} presistent messages")
+
     persistentBatch map { p =>
       import p._
 
       executePut(
         RowKey(processorId, sequenceNr).toBytes,
         Array(ProcessorId, SequenceNr, Marker, Message),
-        Array(toBytes(processorId), toBytes(sequenceNr), toBytes(AcceptedMarker), persistentToBytes(p))
+        Array(toBytes(processorId), toBytes(sequenceNr), toBytes(AcceptedMarker), persistentToBytes(p)),
+        true // forceFlush to guarantee ordering
       )
     }
+
     Future(())
   }
 
@@ -62,10 +65,7 @@ class HBaseAsyncWriteJournal extends Actor with ActorLogging
     val fs = confirmations map { confirm =>
       confirmAsync(confirm.processorId, confirm.sequenceNr, confirm.channelId)
     }
-    Future.sequence(fs) map {
-      case _ =>
-        flushWrites()
-    }
+    Future.sequence(fs) map { case _ => flushWrites() }
   }
 
   override def asyncDeleteMessages(messageIds: immutable.Seq[PersistentId], permanent: Boolean): Future[Unit] = {
@@ -78,9 +78,7 @@ class HBaseAsyncWriteJournal extends Actor with ActorLogging
       rowId = RowKey(messageId.processorId, messageId.sequenceNr)
     } yield doDelete(rowId.toBytes)
 
-    Future.sequence(deleteFutures) map {
-      case _ => flushWrites()
-    }
+    Future.sequence(deleteFutures) map { case _ => flushWrites() }
   }
 
   override def asyncDeleteMessagesTo(processorId: String, toSequenceNr: Long, permanent: Boolean): Future[Unit] = {
@@ -115,11 +113,12 @@ class HBaseAsyncWriteJournal extends Actor with ActorLogging
   // end of journal plugin api impl ------------------------------------------------------------------------------------
 
   def confirmAsync(processorId: String, sequenceNr: Long, channelId: String): Future[Unit] = {
-    //    log.debug(s"Confirming async for processorId: [$processorId], sequenceNr: $sequenceNr and channelId: $channelId")
+    // log.debug(s"Confirming async for processorId: [$processorId], sequenceNr: $sequenceNr and channelId: $channelId")
     executePut(
       RowKey(processorId, sequenceNr).toBytes,
       Array(Marker),
-      Array(confirmedMarkerBytes(channelId))
+      Array(confirmedMarkerBytes(channelId)),
+      false // not to flush immediately
     )
   }
 

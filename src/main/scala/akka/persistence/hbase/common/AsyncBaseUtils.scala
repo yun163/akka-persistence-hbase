@@ -31,12 +31,12 @@ trait AsyncBaseUtils {
     }
 
   protected def deleteRow(key: Array[Byte]): Future[Unit] = {
-    //      log.debug(s"Permanently deleting row: ${Bytes.toString(key)}")
+    // log.debug(s"Permanently deleting row: ${Bytes.toString(key)}")
     executeDelete(key)
   }
 
   protected def markRowAsDeleted(key: Array[Byte]): Future[Unit] = {
-    //      log.debug(s"Marking as deleted, for row: ${Bytes.toString(key)}")
+    // log.debug(s"Marking as deleted, for row: ${Bytes.toString(key)}")
     executePut(key, Array(Marker), Array(DeletedMarkerBytes))
   }
 
@@ -45,16 +45,17 @@ trait AsyncBaseUtils {
     client.delete(request)
   }
 
-  protected def executePut(key: Array[Byte], qualifiers: Array[Array[Byte]], values: Array[Array[Byte]]): Future[Unit] = {
+  protected def executePut(key: Array[Byte], qualifiers: Array[Array[Byte]], values: Array[Array[Byte]], falseFlush: Boolean = false): Future[Unit] = {
     val request = new PutRequest(Table, key, Family, qualifiers, values)
-    client.put(request)
+    val f = client.put(request)
+    if (falseFlush) f.map(_ => flushWrites()) else f
   }
 
   /**
    * Sends the buffered commands to HBase. Does not guarantee that they "complete" right away.
    */
   def flushWrites() {
-    //    client.flush()
+    client.flush()
   }
 
   protected def newScanner() = {
@@ -62,5 +63,4 @@ trait AsyncBaseUtils {
     scanner.setFamily(Family)
     scanner
   }
-
 }
