@@ -8,6 +8,7 @@ import akka.persistence.{ PersistenceSettings, PersistentConfirmation, Persisten
 import org.apache.hadoop.hbase.util.Bytes
 import scala.collection.immutable
 import scala.concurrent._
+import scala.concurrent.duration._
 
 /**
  * Asyncronous HBase Journal.
@@ -48,12 +49,13 @@ class HBaseAsyncWriteJournal extends Actor with ActorLogging
     persistentBatch map { p =>
       import p._
 
-      executePut(
+      val f = executePut(
         RowKey(processorId, sequenceNr).toBytes,
         Array(ProcessorId, SequenceNr, Marker, Message),
         Array(toBytes(processorId), toBytes(sequenceNr), toBytes(AcceptedMarker), persistentToBytes(p)),
         true // forceFlush to guarantee ordering
       )
+      Await.result(f, 10 seconds)
     }
 
     Future(())
