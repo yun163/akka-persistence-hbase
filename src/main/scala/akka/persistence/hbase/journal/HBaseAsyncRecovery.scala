@@ -31,6 +31,7 @@ trait HBaseAsyncRecovery extends AsyncRecovery {
 
     scanner.setMaxNumRows(settings.scanBatchSize)
 
+    // TODO(weichao): Make sure no messages are skipped
     val callback = replay(replayCallback) _
 
     def handleRows(in: AnyRef): Future[Long] = in match {

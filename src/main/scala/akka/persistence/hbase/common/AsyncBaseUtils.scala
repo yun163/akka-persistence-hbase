@@ -45,17 +45,9 @@ trait AsyncBaseUtils {
     client.delete(request)
   }
 
-  protected def executePut(key: Array[Byte], qualifiers: Array[Array[Byte]], values: Array[Array[Byte]], falseFlush: Boolean = false): Future[Unit] = {
+  protected def executePut(key: Array[Byte], qualifiers: Array[Array[Byte]], values: Array[Array[Byte]]): Future[Unit] = {
     val request = new PutRequest(Table, key, Family, qualifiers, values)
-    val f = client.put(request)
-    if (falseFlush) f.map(_ => flushWrites()) else f
-  }
-
-  /**
-   * Sends the buffered commands to HBase. Does not guarantee that they "complete" right away.
-   */
-  def flushWrites() {
-    client.flush()
+    client.put(request)
   }
 
   protected def newScanner() = {

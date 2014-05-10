@@ -124,7 +124,7 @@ class HBaseSnapshotter(val system: ActorSystem, val pluginPersistenceSettings: P
     def handleRows(in: AnyRef): Future[Unit] = in match {
       case null =>
         // log.debug("Finished scanning for snapshots to delete")
-        flushWrites()
+        client.flush()
         scanner.close()
         Future.successful()
 

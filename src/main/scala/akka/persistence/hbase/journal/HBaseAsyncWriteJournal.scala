@@ -43,43 +43,33 @@ class HBaseAsyncWriteJournal extends Actor with ActorLogging
 
   // journal plugin api impl -------------------------------------------------------------------------------------------
 
-  override def asyncWriteMessages(persistentBatch: immutable.Seq[PersistentRepr]): Future[Unit] = {
+  override def asyncWriteMessages(persistentBatch: immutable.Seq[PersistentRepr]) = Future {
     // log.debug(s"Write async for ${persistentBatch.size} presistent messages")
-
     persistentBatch map { p =>
       import p._
-
       executePut(
         RowKey(processorId, sequenceNr).toBytes,
         Array(ProcessorId, SequenceNr, Marker, Message),
-        Array(toBytes(processorId), toBytes(sequenceNr), toBytes(AcceptedMarker), persistentToBytes(p)),
-        true // forceFlush to guarantee ordering
+        Array(toBytes(processorId), toBytes(sequenceNr), toBytes(AcceptedMarker), persistentToBytes(p))
       )
     }
-
-    Future(())
   }
 
-  override def asyncWriteConfirmations(confirmations: immutable.Seq[PersistentConfirmation]): Future[Unit] = {
+  override def asyncWriteConfirmations(confirmations: immutable.Seq[PersistentConfirmation]) = Future {
     // log.debug(s"AsyncWriteConfirmations for ${confirmations.size} messages")
-
     val fs = confirmations map { confirm =>
       confirmAsync(confirm.processorId, confirm.sequenceNr, confirm.channelId)
     }
-    Future.sequence(fs) map { case _ => flushWrites() }
   }
 
-  override def asyncDeleteMessages(messageIds: immutable.Seq[PersistentId], permanent: Boolean): Future[Unit] = {
+  override def asyncDeleteMessages(messageIds: immutable.Seq[PersistentId], permanent: Boolean) = Future {
     // log.debug(s"Async delete [${messageIds.size}] messages, premanent: $permanent")
-
     val doDelete = deleteFunctionFor(permanent)
 
     val deleteFutures = for {
       messageId <- messageIds
       rowId = RowKey(messageId.processorId, messageId.sequenceNr)
     } yield doDelete(rowId.toBytes)
-
-    Future.sequence(deleteFutures) map { case _ => flushWrites() }
   }
 
   override def asyncDeleteMessagesTo(processorId: String, toSequenceNr: Long, permanent: Boolean): Future[Unit] = {
@@ -93,8 +83,8 @@ class HBaseAsyncWriteJournal extends Actor with ActorLogging
 
     def handleRows(in: AnyRef): Future[Unit] = in match {
       case null =>
-        //  log.debug("AsyncDeleteMessagesTo finished scanning for keys")
-        flushWrites()
+        // log.debug("AsyncDeleteMessagesTo finished scanning for keys"
+        client.flush()
         scanner.close()
         Future(Array[Byte]())
 
@@ -118,8 +108,7 @@ class HBaseAsyncWriteJournal extends Actor with ActorLogging
     executePut(
       RowKey(processorId, sequenceNr).toBytes,
       Array(Marker),
-      Array(confirmedMarkerBytes(channelId)),
-      false // not to flush immediately
+      Array(confirmedMarkerBytes(channelId))
     )
   }
 
