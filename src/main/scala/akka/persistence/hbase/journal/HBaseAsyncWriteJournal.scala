@@ -49,13 +49,12 @@ class HBaseAsyncWriteJournal extends Actor with ActorLogging
     persistentBatch map { p =>
       import p._
 
-      val f = executePut(
+      executePut(
         RowKey(processorId, sequenceNr).toBytes,
         Array(ProcessorId, SequenceNr, Marker, Message),
         Array(toBytes(processorId), toBytes(sequenceNr), toBytes(AcceptedMarker), persistentToBytes(p)),
         true // forceFlush to guarantee ordering
       )
-      Await.result(f, 10 seconds)
     }
 
     Future(())
