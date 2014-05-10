@@ -13,18 +13,13 @@ case class EncryptionConfig(keyMap: Map[Int, Array[Byte]])
 
 class Encryptor(key: Array[Byte]) {
   private val secretKey = new SecretKeySpec(key, "AES")
+  private val cipher1 = Cipher.getInstance("AES")
+  cipher1.init(Cipher.ENCRYPT_MODE, secretKey)
+  private val cipher2 = Cipher.getInstance("AES")
+  cipher2.init(Cipher.DECRYPT_MODE, secretKey)
 
-  def encrypt(input: Array[Byte]): Array[Byte] = {
-    val cipher = Cipher.getInstance("AES")
-    cipher.init(Cipher.ENCRYPT_MODE, secretKey)
-    cipher.doFinal(input)
-  }
-
-  def decrypt(input: Array[Byte]): Array[Byte] = {
-    val cipher = Cipher.getInstance("AES")
-    cipher.init(Cipher.DECRYPT_MODE, secretKey)
-    cipher.doFinal(input)
-  }
+  def encrypt(input: Array[Byte]): Array[Byte] = cipher1.doFinal(input)
+  def decrypt(input: Array[Byte]): Array[Byte] = cipher2.doFinal(input)
 }
 
 class EncryptingSerializationExtension(system: ActorSystem, settingString: String) {
@@ -34,28 +29,24 @@ class EncryptingSerializationExtension(system: ActorSystem, settingString: Strin
   private val encryptors: Map[Int, Encryptor] = config.keyMap.map(kv => (kv._1, new Encryptor(kv._2)))
   private val defaultVersion: Int = encryptors.keySet.max
   private val defaultEncryptor: Encryptor = encryptors(defaultVersion)
-  //    println("EncryptingSerializationExtension config:" + "*" * 100 + config)
+  // println("EncryptingSerializationExtension config:" + "*" * 100 + config)
 
   def serialize(o: AnyRef) = {
     val raw = ser.serialize(o).get
-    //    println("raw string => " + raw.map(_.toChar))
     val encrypted = defaultEncryptor.encrypt(raw)
 
     val buffer = ByteBuffer.allocate(4 + encrypted.length)
     buffer.putInt(defaultVersion)
     buffer.put(encrypted)
-    val x = buffer.array
-    //    println("encrypted string => " + x.map(_.toChar))
-    x
+    buffer.array
   }
 
   def deserialize[T](bytes: Array[Byte], clazz: Class[T]): T = {
     def toInt(bytes: Seq[Byte]): Int = bytes.foldLeft(0)((x, b) => (x << 8) + (b & 0xFF))
+
     val version = toInt(bytes.slice(0, 4))
-    //    println("decrypte: version " + version)
     val encryptor = encryptors(version)
     val raw = encryptor.decrypt(bytes.drop(4))
-    //    println("raw after decryption: " + raw.map(_.toChar))
     ser.deserialize(raw, clazz).get
   }
 }
