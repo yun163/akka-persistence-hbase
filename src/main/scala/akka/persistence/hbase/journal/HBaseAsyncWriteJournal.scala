@@ -8,7 +8,7 @@ import akka.persistence.{ PersistenceSettings, PersistentConfirmation, Persisten
 import org.apache.hadoop.hbase.util.Bytes
 import scala.collection.immutable
 import scala.concurrent._
-import scala.concurrent.duration._
+import java.io.PrintWriter
 
 /**
  * Asyncronous HBase Journal.
@@ -29,6 +29,9 @@ class HBaseAsyncWriteJournal extends Actor with ActorLogging
   lazy val hadoopConfig = HBaseJournalInit.getHBaseConfig(config, JOURNAL_CONFIG)
 
   lazy val client = HBaseClientFactory.getClient(settings, new PersistenceSettings(config.getConfig("akka.persistence")))
+  val logProcessorId: String = config.getString("akka.persistence.sequence-log.processor-id")
+  val sequenceLogFile: String = config.getString("akka.persistence.sequence-log.file")
+  var printerWriter: java.io.PrintWriter = null
 
   lazy val publishTestingEvents = settings.publishTestingEvents
 
@@ -43,33 +46,43 @@ class HBaseAsyncWriteJournal extends Actor with ActorLogging
 
   // journal plugin api impl -------------------------------------------------------------------------------------------
 
-  override def asyncWriteMessages(persistentBatch: immutable.Seq[PersistentRepr]) = Future {
+  override def asyncWriteMessages(persistentBatch: immutable.Seq[PersistentRepr]): Future[Unit] = {
     // log.debug(s"Write async for ${persistentBatch.size} presistent messages")
+
     persistentBatch map { p =>
       import p._
+
       executePut(
         RowKey(processorId, sequenceNr).toBytes,
         Array(ProcessorId, SequenceNr, Marker, Message),
-        Array(toBytes(processorId), toBytes(sequenceNr), toBytes(AcceptedMarker), persistentToBytes(p))
+        Array(toBytes(processorId), toBytes(sequenceNr), toBytes(AcceptedMarker), persistentToBytes(p)),
+        false // forceFlush to guarantee ordering
       )
     }
+
+    Future(())
   }
 
-  override def asyncWriteConfirmations(confirmations: immutable.Seq[PersistentConfirmation]) = Future {
+  override def asyncWriteConfirmations(confirmations: immutable.Seq[PersistentConfirmation]): Future[Unit] = {
     // log.debug(s"AsyncWriteConfirmations for ${confirmations.size} messages")
+
     val fs = confirmations map { confirm =>
       confirmAsync(confirm.processorId, confirm.sequenceNr, confirm.channelId)
     }
+    Future.sequence(fs) map { case _ => flushWrites() }
   }
 
-  override def asyncDeleteMessages(messageIds: immutable.Seq[PersistentId], permanent: Boolean) = Future {
+  override def asyncDeleteMessages(messageIds: immutable.Seq[PersistentId], permanent: Boolean): Future[Unit] = {
     // log.debug(s"Async delete [${messageIds.size}] messages, premanent: $permanent")
+
     val doDelete = deleteFunctionFor(permanent)
 
     val deleteFutures = for {
       messageId <- messageIds
       rowId = RowKey(messageId.processorId, messageId.sequenceNr)
     } yield doDelete(rowId.toBytes)
+
+    Future.sequence(deleteFutures) map { case _ => flushWrites() }
   }
 
   override def asyncDeleteMessagesTo(processorId: String, toSequenceNr: Long, permanent: Boolean): Future[Unit] = {
@@ -83,8 +96,8 @@ class HBaseAsyncWriteJournal extends Actor with ActorLogging
 
     def handleRows(in: AnyRef): Future[Unit] = in match {
       case null =>
-        // log.debug("AsyncDeleteMessagesTo finished scanning for keys"
-        client.flush()
+        //  log.debug("AsyncDeleteMessagesTo finished scanning for keys")
+        flushWrites()
         scanner.close()
         Future(Array[Byte]())
 
@@ -108,7 +121,8 @@ class HBaseAsyncWriteJournal extends Actor with ActorLogging
     executePut(
       RowKey(processorId, sequenceNr).toBytes,
       Array(Marker),
-      Array(confirmedMarkerBytes(channelId))
+      Array(confirmedMarkerBytes(channelId)),
+      false // not to flush immediately
     )
   }
 
@@ -117,9 +131,14 @@ class HBaseAsyncWriteJournal extends Actor with ActorLogging
     else markRowAsDeleted
   }
 
+  override def preStart(): Unit = {
+    printerWriter = new PrintWriter(new java.io.File(sequenceLogFile))
+  }
+
   override def postStop(): Unit = {
     // client could be shutdown once at here, another user: HBaseSnapshotter should not shut down it,
     // for it may still be used here
+    printerWriter.close()
     HBaseClientFactory.shutDown()
     super.postStop()
   }

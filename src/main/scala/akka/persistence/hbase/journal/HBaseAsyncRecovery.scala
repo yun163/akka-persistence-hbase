@@ -5,10 +5,12 @@ import akka.actor.{ ActorLogging, Actor }
 import akka.persistence.journal._
 import akka.persistence.hbase.common.{ Columns, RowKey, DeferredConversions }
 import org.hbase.async.KeyValue
+import org.hbase.async.Scanner
 import org.apache.hadoop.hbase.util.Bytes
 import scala.annotation.switch
 import scala.collection.mutable
 import scala.concurrent.Future
+import scala.util.{ Success, Failure }
 
 trait HBaseAsyncRecovery extends AsyncRecovery {
   this: Actor with ActorLogging with HBaseAsyncWriteJournal =>
@@ -23,16 +25,29 @@ trait HBaseAsyncRecovery extends AsyncRecovery {
   // TODO: can be improved to to N parallel scans for each "partition" we created, instead of one "big scan"
   override def asyncReplayMessages(processorId: String, fromSequenceNr: Long, toSequenceNr: Long, max: Long)(replayCallback: PersistentRepr => Unit): Future[Unit] = {
     // log.debug(s"Async replay for processorId [$processorId], from sequenceNr: [$fromSequenceNr], to sequenceNr: [$toSequenceNr]")
-
-    val scanner = newScanner()
-    scanner.setStartKey(RowKey(processorId, fromSequenceNr).toBytes)
-    scanner.setStopKey(RowKey.toKeyForProcessor(processorId, toSequenceNr))
-    scanner.setKeyRegexp(RowKey.patternForProcessor(processorId))
-
-    scanner.setMaxNumRows(settings.scanBatchSize)
-
-    // TODO(weichao): Make sure no messages are skipped
+    var retryTimes: Int = 0
+    var tryStartSeqNr: Long = if (fromSequenceNr <= 0) 1 else fromSequenceNr
+    var scanner: Scanner = null
     val callback = replay(replayCallback) _
+
+    def hasSequenceGap(columns: Seq[KeyValue]): Boolean = {
+      val sequenceNrKeyValue = findColumn(columns, SequenceNr)
+      if (tryStartSeqNr != Bytes.toLong(sequenceNrKeyValue.value)) {
+        return true
+      } else {
+        tryStartSeqNr += 1
+        return false
+      }
+    }
+
+    def initScanner() {
+      if (scanner != null) scanner.close()
+      scanner = newScanner()
+      scanner.setStartKey(RowKey(processorId, tryStartSeqNr).toBytes)
+      scanner.setStopKey(RowKey.toKeyForProcessor(processorId, toSequenceNr))
+      scanner.setKeyRegexp(RowKey.patternForProcessor(processorId))
+      scanner.setMaxNumRows(settings.scanBatchSize)
+    }
 
     def handleRows(in: AnyRef): Future[Long] = in match {
       case null =>
@@ -42,19 +57,24 @@ trait HBaseAsyncRecovery extends AsyncRecovery {
 
       case rows: AsyncBaseRows =>
         // log.debug(s"replayAsync for processorId [$processorId] - got ${rows.size} rows...")
-
-        val seqNrs = for {
+        for {
           row <- rows.asScala
           cols = row.asScala
-        } yield callback(cols)
-
-        go() map { reachedSeqNr =>
-          math.max(reachedSeqNr, seqNrs.max)
+        } {
+          if (hasSequenceGap(cols) && retryTimes < 3) {
+            retryTimes += 1
+            initScanner()
+            return go()
+          } else {
+            callback(cols)
+          }
         }
+        go()
     }
 
     def go() = scanner.nextRows() flatMap handleRows
 
+    initScanner
     go()
   }
 
@@ -78,8 +98,9 @@ trait HBaseAsyncRecovery extends AsyncRecovery {
 
         val maxSoFar = rows.asScala.map(cols => sequenceNr(cols.asScala)).max
 
-        go() map { reachedSeqNr =>
-          math.max(reachedSeqNr, maxSoFar)
+        go() map {
+          reachedSeqNr =>
+            math.max(reachedSeqNr, maxSoFar)
         }
     }
 
@@ -91,6 +112,17 @@ trait HBaseAsyncRecovery extends AsyncRecovery {
   private def replay(replayCallback: (PersistentRepr) => Unit)(columns: mutable.Buffer[KeyValue]): Long = {
     val messageKeyValue = findColumn(columns, Message)
     var msg = persistentFromBytes(messageKeyValue.value)
+
+    val processorIdKeyValue = findColumn(columns, ProcessorId)
+    val processorId = Bytes.toString(processorIdKeyValue.value)
+
+    val sequenceNrKeyValue = findColumn(columns, SequenceNr)
+    val sequenceNr: Long = Bytes.toLong(sequenceNrKeyValue.value)
+
+    if (processorId.equals(logProcessorId)) {
+      printerWriter.println(sequenceNr + " " + messageKeyValue.value.length)
+      printerWriter.flush()
+    }
 
     val markerKeyValue = findColumn(columns, Marker)
     val marker = Bytes.toString(markerKeyValue.value)
