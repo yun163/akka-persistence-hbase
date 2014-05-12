@@ -4,7 +4,7 @@ import org.apache.hadoop.hbase.util.Bytes._
 
 object Columns {
   val ProcessorId = toBytes("id")
-  val SequenceNr = toBytes("sn")
+  val SequenceNr = toBytes("seq")
   val Marker = toBytes("mk")
-  val Message = toBytes("pl")
+  val Message = toBytes("msg")
 }
