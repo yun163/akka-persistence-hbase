@@ -61,14 +61,20 @@ trait HBaseAsyncRecovery extends AsyncRecovery {
           row <- rows.asScala
           cols = row.asScala
         } {
-          if (hasSequenceGap(cols) && retryTimes < 3) {
+          if (hasSequenceGap(cols) && retryTimes < replayGapRetry) {
             retryTimes += 1
+            Thread.sleep(100)
             initScanner()
             return go()
           } else {
+            if (retryTimes > replayGapRetry) {
+              log.warning(s"processorId : ${processorId}, with view gap at ${tryStartSeqNr} after ${replayGapRetry} times retry")
+            }
             callback(cols)
           }
         }
+        // re init to 0
+        retryTimes = 0
         go()
     }
 
@@ -112,16 +118,17 @@ trait HBaseAsyncRecovery extends AsyncRecovery {
   private def replay(replayCallback: (PersistentRepr) => Unit)(columns: mutable.Buffer[KeyValue]): Long = {
     val messageKeyValue = findColumn(columns, Message)
     var msg = persistentFromBytes(messageKeyValue.value)
+    if (enableExportSequence) {
+      val processorIdKeyValue = findColumn(columns, ProcessorId)
+      val processorId = Bytes.toString(processorIdKeyValue.value)
 
-    val processorIdKeyValue = findColumn(columns, ProcessorId)
-    val processorId = Bytes.toString(processorIdKeyValue.value)
+      val sequenceNrKeyValue = findColumn(columns, SequenceNr)
+      val sequenceNr: Long = Bytes.toLong(sequenceNrKeyValue.value)
 
-    val sequenceNrKeyValue = findColumn(columns, SequenceNr)
-    val sequenceNr: Long = Bytes.toLong(sequenceNrKeyValue.value)
-
-    if (processorId.equals(logProcessorId)) {
-      printerWriter.println(sequenceNr + " " + messageKeyValue.value.length)
-      printerWriter.flush()
+      if (processorId.equals(exportProcessorId)) {
+        printerWriter.println(sequenceNr + " " + messageKeyValue.value.length)
+        printerWriter.flush()
+      }
     }
 
     val markerKeyValue = findColumn(columns, Marker)

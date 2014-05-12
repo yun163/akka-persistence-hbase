@@ -20,7 +20,6 @@ class HBaseAsyncWriteJournal extends Actor with ActorLogging
     with HBaseAsyncRecovery {
 
   import RowTypeMarkers._
-  import TestingEventProtocol._
 
   private lazy val config = context.system.settings.config
 
@@ -29,9 +28,12 @@ class HBaseAsyncWriteJournal extends Actor with ActorLogging
   lazy val hadoopConfig = HBaseJournalInit.getHBaseConfig(config, JOURNAL_CONFIG)
 
   lazy val client = HBaseClientFactory.getClient(settings, new PersistenceSettings(config.getConfig("akka.persistence")))
-  val logProcessorId: String = config.getString("akka.persistence.sequence-log.processor-id")
-  val sequenceLogFile: String = config.getString("akka.persistence.sequence-log.file")
+
+  val enableExportSequence: Boolean = config.getBoolean("akka.persistence.export-sequence.enable-export")
+  val exportProcessorId: String = config.getString("akka.persistence.export-sequence.processor-id")
+  val exportSequenceFile: String = config.getString("akka.persistence.export-sequence.file")
   var printerWriter: java.io.PrintWriter = null
+  val replayGapRetry: Int = config.getInt("akka.persistence.replay-gap-retry")
 
   lazy val publishTestingEvents = settings.publishTestingEvents
 
@@ -132,13 +134,15 @@ class HBaseAsyncWriteJournal extends Actor with ActorLogging
   }
 
   override def preStart(): Unit = {
-    printerWriter = new PrintWriter(new java.io.File(sequenceLogFile))
+    if (enableExportSequence)
+      printerWriter = new PrintWriter(new java.io.File(exportSequenceFile))
   }
 
   override def postStop(): Unit = {
     // client could be shutdown once at here, another user: HBaseSnapshotter should not shut down it,
     // for it may still be used here
-    printerWriter.close()
+    if (enableExportSequence)
+      printerWriter.close()
     HBaseClientFactory.shutDown()
     super.postStop()
   }
