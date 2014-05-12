@@ -35,7 +35,6 @@ trait HBaseAsyncRecovery extends AsyncRecovery {
       if (tryStartSeqNr != Bytes.toLong(sequenceNrKeyValue.value)) {
         return true
       } else {
-        tryStartSeqNr += 1
         return false
       }
     }
@@ -70,7 +69,7 @@ trait HBaseAsyncRecovery extends AsyncRecovery {
             if (retryTimes > replayGapRetry) {
               log.warning(s"processorId : ${processorId}, with view gap at ${tryStartSeqNr} after ${replayGapRetry} times retry")
             }
-            callback(cols)
+            tryStartSeqNr = callback(cols) + 1
           }
         }
         // re init to 0
