@@ -38,15 +38,15 @@ class HBaseSnapshotter(val system: ActorSystem, val pluginPersistenceSettings: P
 
   def loadAsync(processorId: String, criteria: SnapshotSelectionCriteria): Future[Option[SelectedSnapshot]] = {
     // log.debug("Loading async for processorId: [{}] on criteria: {}", processorId, criteria)
-    val scanner = newScanner()
+    val scanner = newSaltedScanner(settings.partitionCount)
     val SnapshotSelectionCriteria(maxSequenceNr, maxTimestamp) = criteria
+    scanner.setSaltedStartKeys(processorId, 1)
+    scanner.setSaltedStopKeys(processorId, maxSequenceNr)
+    scanner.setMaxNumRows(settings.scanBatchSize)
+    scanner.setKeyRegexp(processorId)
 
-    val start = RowKey.firstForProcessor(processorId)
-    val stop = RowKey(processorId, maxSequenceNr)
     // log.debug("Loading async for processorId: [{}] start: {}, end: {}", processorId, start.toKeyString, stop.toKeyString)
-    scanner.setStartKey(start.toBytes)
-    scanner.setStopKey(stop.toBytes)
-    scanner.setKeyRegexp(RowKey.patternForProcessor(processorId))
+
     // log.debug("Loading async for processorId: [{}] keyRegexp: {}", processorId, RowKey.patternForProcessor(processorId))
 
     val promise = Promise[Option[SelectedSnapshot]]()
@@ -112,14 +112,12 @@ class HBaseSnapshotter(val system: ActorSystem, val pluginPersistenceSettings: P
   def delete(processorId: String, criteria: SnapshotSelectionCriteria): Unit = {
     // log.debug("Deleting processorId: [{}], criteria: {}", processorId, criteria)
 
-    val scanner = newScanner()
+    val scanner = newSaltedScanner(settings.partitionCount)
 
-    val start = RowKey.firstForProcessor(processorId)
-    val stop = RowKey(processorId, criteria.maxSequenceNr)
-
-    scanner.setStartKey(start.toBytes)
-    scanner.setStopKey(stop.toBytes)
-    scanner.setKeyRegexp(RowKey.patternForProcessor(processorId))
+    scanner.setSaltedStartKeys(processorId, 1)
+    scanner.setSaltedStopKeys(processorId, criteria.maxSequenceNr)
+    scanner.setMaxNumRows(settings.scanBatchSize)
+    scanner.setKeyRegexp(processorId)
 
     def handleRows(in: AnyRef): Future[Unit] = in match {
       case null =>

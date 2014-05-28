@@ -1,16 +1,14 @@
 package akka.persistence.hbase.journal
 
-import akka.persistence.PersistentRepr
 import akka.actor.{ ActorLogging, Actor }
+import akka.persistence.PersistentRepr
+import akka.persistence.hbase.common.{ Columns, RowKey, DeferredConversions, SaltedScanner }
 import akka.persistence.journal._
-import akka.persistence.hbase.common.{ Columns, RowKey, DeferredConversions }
 import org.hbase.async.KeyValue
-import org.hbase.async.Scanner
 import org.apache.hadoop.hbase.util.Bytes
 import scala.annotation.switch
 import scala.collection.mutable
 import scala.concurrent.Future
-import scala.util.{ Success, Failure }
 
 trait HBaseAsyncRecovery extends AsyncRecovery {
   this: Actor with ActorLogging with HBaseAsyncWriteJournal =>
@@ -27,12 +25,11 @@ trait HBaseAsyncRecovery extends AsyncRecovery {
     // log.debug(s"Async replay for processorId [$processorId], from sequenceNr: [$fromSequenceNr], to sequenceNr: [$toSequenceNr]")
     var retryTimes: Int = 0
     var tryStartSeqNr: Long = if (fromSequenceNr <= 0) 1 else fromSequenceNr
-    var scanner: Scanner = null
+    var scanner: SaltedScanner = null
     val callback = replay(replayCallback) _
 
-    def hasSequenceGap(columns: Seq[KeyValue]): Boolean = {
-      val sequenceNrKeyValue = findColumn(columns, SequenceNr)
-      if (tryStartSeqNr != Bytes.toLong(sequenceNrKeyValue.value)) {
+    def hasSequenceGap(columns: mutable.Buffer[KeyValue]): Boolean = {
+      if (tryStartSeqNr != sequenceNr(columns)) {
         return true
       } else {
         return false
@@ -41,10 +38,10 @@ trait HBaseAsyncRecovery extends AsyncRecovery {
 
     def initScanner() {
       if (scanner != null) scanner.close()
-      scanner = newScanner()
-      scanner.setStartKey(RowKey(processorId, tryStartSeqNr).toBytes)
-      scanner.setStopKey(RowKey.toKeyForProcessor(processorId, toSequenceNr))
-      scanner.setKeyRegexp(RowKey.patternForProcessor(processorId))
+      scanner = newSaltedScanner(settings.partitionCount)
+      scanner.setSaltedStartKeys(processorId, tryStartSeqNr)
+      scanner.setSaltedStopKeys(processorId, RowKey.toSequenceNr(toSequenceNr))
+      scanner.setKeyRegexp(processorId)
       scanner.setMaxNumRows(settings.scanBatchSize)
     }
 
@@ -87,16 +84,17 @@ trait HBaseAsyncRecovery extends AsyncRecovery {
   override def asyncReadHighestSequenceNr(processorId: String, fromSequenceNr: Long): Future[Long] = {
     // log.debug(s"Async read for highest sequence number for processorId: [$processorId] (hint, seek from  nr: [$fromSequenceNr])")
 
-    val scanner = newScanner()
-    scanner.setStartKey(RowKey(processorId, fromSequenceNr).toBytes)
-    scanner.setStopKey(RowKey.lastForProcessor(processorId))
-    scanner.setKeyRegexp(RowKey.patternForProcessor(processorId))
+    val scanner = newSaltedScanner(settings.partitionCount)
+    scanner.setSaltedStartKeys(processorId, fromSequenceNr)
+    scanner.setSaltedStopKeys(processorId, Long.MaxValue)
+    scanner.setMaxNumRows(settings.scanBatchSize)
+    scanner.setKeyRegexp(processorId)
 
     def handleRows(in: AnyRef): Future[Long] = in match {
       case null =>
         // log.debug(s"AsyncReadHighestSequenceNr for processorId [$processorId] finished")
         scanner.close()
-        Future(0)
+        Future(fromSequenceNr)
 
       case rows: AsyncBaseRows =>
         // log.debug(s"AsyncReadHighestSequenceNr for processorId [$processorId] - got ${rows.size} rows...")
@@ -111,7 +109,7 @@ trait HBaseAsyncRecovery extends AsyncRecovery {
 
     def go() = scanner.nextRows() flatMap handleRows
 
-    go()
+    go() // map { i => println(s"HightestSequenceNr for $processorId is $i, fromSequenceNr = $fromSequenceNr"); i }
   }
 
   private def replay(replayCallback: (PersistentRepr) => Unit)(columns: mutable.Buffer[KeyValue]): Long = {

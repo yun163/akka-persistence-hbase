@@ -53,7 +53,7 @@ class HBaseAsyncWriteJournal extends Actor with ActorLogging
 
     persistentBatch map { p =>
       import p._
-
+      //      println(RowKey(processorId, sequenceNr).toKeyString)
       executePut(
         RowKey(processorId, sequenceNr).toBytes,
         Array(ProcessorId, SequenceNr, Marker, Message),
@@ -91,10 +91,11 @@ class HBaseAsyncWriteJournal extends Actor with ActorLogging
     // log.debug(s"AsyncDeleteMessagesTo for processorId: [$processorId] to sequenceNr: $toSequenceNr, premanent: $permanent")
     val doDelete = deleteFunctionFor(permanent)
 
-    val scanner = newScanner()
-    scanner.setStartKey(RowKey.firstForProcessor(processorId).toBytes)
-    scanner.setStopKey(RowKey.toKeyForProcessor(processorId, toSequenceNr))
-    scanner.setKeyRegexp(RowKey.patternForProcessor(processorId))
+    val scanner = newSaltedScanner(settings.partitionCount)
+    scanner.setSaltedStartKeys(processorId, 1)
+    scanner.setSaltedStopKeys(processorId, RowKey.toSequenceNr(toSequenceNr))
+    scanner.setMaxNumRows(settings.scanBatchSize)
+    scanner.setKeyRegexp(processorId)
 
     def handleRows(in: AnyRef): Future[Unit] = in match {
       case null =>
