@@ -36,7 +36,7 @@ object ShortStringGenerator {
       "U", "V", "W", "X", "Y", "Z")
     // 对传入网址进行 MD5 加密
     val sMD5EncryptResult = (new Md5()).getMD5ofStr(key + raw)
-    println("sMD5EncryptResult => " + sMD5EncryptResult)
+    //    println("sMD5EncryptResult => " + sMD5EncryptResult)
     val hex: String = sMD5EncryptResult
     val resStrings = new Array[String](4)
     for (i <- 0 until 4) {
