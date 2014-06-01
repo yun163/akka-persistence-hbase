@@ -2,11 +2,11 @@ organization := "com.coinport"
 
 name := "akka-persistence-hbase"
 
-version := "1.0.6-SNAPSHOT"
+version := "1.0.7-SNAPSHOT"
 
-scalaVersion := "2.10.3"
+scalaVersion := "2.10.4"
 
-val akkaVersion = "2.3.2"
+val akkaVersion = "2.3.3"
 
 resolvers += "coinport-repo" at "http://192.168.0.105:8081/nexus/content/groups/public"
 
@@ -43,7 +43,7 @@ publishTo <<= (version) { version: String =>
   val nexus = "http://192.168.0.105:8081/nexus/content/repositories/"
   if (version.trim.endsWith("SNAPSHOT"))
     Some("snapshots" at nexus + "snapshots/")
-  else                                   
+  else
     Some("releases"  at nexus + "releases/")
 }
 
