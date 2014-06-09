@@ -143,6 +143,7 @@ class SaltedScanner(client: HBaseClient, partitionCount: Int, table: Array[Byte]
   }
 
   private def renderList(rows: AsyncBaseRows) {
+    println("#" * 50)
     import collection.JavaConverters._
     for {
       row <- rows.asScala

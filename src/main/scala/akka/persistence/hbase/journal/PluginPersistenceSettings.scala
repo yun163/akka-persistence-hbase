@@ -1,5 +1,6 @@
 package akka.persistence.hbase.journal
 
+import akka.persistence.hbase.common.Const._
 import com.typesafe.config.Config
 
 /**
@@ -36,7 +37,7 @@ object PluginPersistenceSettings {
       zookeeperQuorum = withCheck("hbase.zookeeper.quorum", "localhost:2181")(getString),
       table = withCheck("table", "")(getString),
       family = withCheck("family", "")(getString),
-      partitionCount = withCheck("partition.count", 1)(getInt),
+      partitionCount = PARTITION_COUNT, //withCheck("partition.count", 1)(getInt),
       scanBatchSize = withCheck("scan-batch-size", 50)(getInt),
       clientFlushInterval = withCheck("client-flush-interval", 0)(getInt),
       pluginDispatcherId = withCheck("plugin-dispatcher", "")(getString),

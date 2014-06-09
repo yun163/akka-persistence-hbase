@@ -6,4 +6,6 @@ object Const {
   val ROW_KEY_PARTITION_SALT_LEN = 2
   val ROW_KEY_PRSOR_ID_LEN_MAX = 8
   val ROW_KEY_SEQ_NUM_LEN = 16
+
+  val PARTITION_COUNT = 18 //Use fixed partition, will never change, except data has been migrated
 }

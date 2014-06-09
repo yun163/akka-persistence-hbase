@@ -27,9 +27,15 @@ trait HBaseAsyncRecovery extends AsyncRecovery {
     var tryStartSeqNr: Long = if (fromSequenceNr <= 0) 1 else fromSequenceNr
     var scanner: SaltedScanner = null
     val callback = replay(replayCallback) _
+    var isDuplicate = false
 
     def hasSequenceGap(columns: mutable.Buffer[KeyValue]): Boolean = {
-      if (tryStartSeqNr != sequenceNr(columns)) {
+      val processingSeqNr = sequenceNr(columns)
+      if (tryStartSeqNr != processingSeqNr) {
+        if (tryStartSeqNr > processingSeqNr) {
+          log.error(s"Replay $processorId Meet duplicated message: to process is $tryStartSeqNr, actual is $processingSeqNr")
+          isDuplicate = true
+        }
         return true
       } else {
         return false
@@ -58,13 +64,17 @@ trait HBaseAsyncRecovery extends AsyncRecovery {
           cols = row.asScala
         } {
           if (hasSequenceGap(cols) && retryTimes < replayGapRetry) {
+            if (isDuplicate)
+              return Future.failed(new Exception(s"Replay Meet duplicated message: [$processorId, $tryStartSeqNr]"))
+            log.warning(s"Replay ${processorId} meet gap at ${tryStartSeqNr}")
             retryTimes += 1
             Thread.sleep(100)
             initScanner()
             return go()
           } else {
-            if (retryTimes > replayGapRetry) {
-              log.warning(s"processorId : ${processorId}, with view gap at ${tryStartSeqNr} after ${replayGapRetry} times retry")
+            if (retryTimes >= replayGapRetry) {
+              log.error(s"Replay ${processorId} failed by sequence gap at ${tryStartSeqNr} after ${replayGapRetry} times retry")
+              return Future.failed(new Exception(s"Replay ${processorId} failed by sequence gap at ${tryStartSeqNr} after ${replayGapRetry} times retry"))
             }
             tryStartSeqNr = callback(cols) + 1
           }

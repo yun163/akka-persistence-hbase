@@ -5,6 +5,7 @@ import org.apache.hadoop.hbase.client._
 import org.apache.hadoop.hbase.util.Bytes
 import com.typesafe.config._
 import org.apache.hadoop.hbase.{ HColumnDescriptor, HTableDescriptor }
+import akka.persistence.hbase.common.Const._
 
 object HBaseJournalInit {
 
@@ -23,7 +24,7 @@ object HBaseJournalInit {
     val journalConfig = config.getConfig(persistentConfig)
     val table = journalConfig.getString("table")
     val familyName = journalConfig.getString("family")
-    val partitionCount = Integer.parseInt(journalConfig.getString("partition.count"))
+    val partitionCount = PARTITION_COUNT // Integer.parseInt(journalConfig.getString("partition.count"))
 
     try doInitTable(admin, table, familyName, partitionCount) finally admin.close()
   }
