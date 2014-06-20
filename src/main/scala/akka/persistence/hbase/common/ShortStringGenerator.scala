@@ -9,9 +9,9 @@ object ShortStringGenerator {
   }
 
   def batchTest() {
-    val ss = Array[String]("p_a", "p_aa", "p_v", "v_a", "v_aa", "v_am")
+    val ss = Array[String]("p_a", "p_aa", "p_v", "v_a", "v_aa", "v_am", "p_bw_btc", "p_bw_btc")
     for (s <- ss) {
-      println(s"${s} => ${genMd5String(s)}")
+      println(s"${s} => ${genMd5String(s).substring(0, ROW_KEY_PRSOR_ID_LEN_MAX)}")
     }
   }
 
