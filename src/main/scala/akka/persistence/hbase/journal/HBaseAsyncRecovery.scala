@@ -64,8 +64,10 @@ trait HBaseAsyncRecovery extends AsyncRecovery {
           cols = row.asScala
         } {
           if (hasSequenceGap(cols) && retryTimes < replayGapRetry) {
-            if (isDuplicate)
+            if (isDuplicate) {
+              scanner.close()
               return Future.failed(new Exception(s"Replay Meet duplicated message: [$processorId, $tryStartSeqNr]"))
+            }
             log.warning(s"Replay ${processorId} meet gap at ${tryStartSeqNr}")
             retryTimes += 1
             Thread.sleep(100)
@@ -73,6 +75,7 @@ trait HBaseAsyncRecovery extends AsyncRecovery {
             return go()
           } else {
             if (retryTimes >= replayGapRetry) {
+              scanner.close()
               log.error(s"Replay ${processorId} failed by sequence gap at ${tryStartSeqNr} after ${replayGapRetry} times retry")
               return Future.failed(new Exception(s"Replay ${processorId} failed by sequence gap at ${tryStartSeqNr} after ${replayGapRetry} times retry"))
             }

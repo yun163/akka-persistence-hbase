@@ -2,7 +2,7 @@ organization := "com.coinport"
 
 name := "akka-persistence-hbase"
 
-version := "1.0.8-SNAPSHOT"
+version := "1.0.9-SNAPSHOT"
 
 scalaVersion := "2.10.4"
 
