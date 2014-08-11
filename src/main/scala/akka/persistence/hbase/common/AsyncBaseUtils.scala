@@ -12,6 +12,7 @@ import scala.util.Sorting
 
 import DeferredConversions._
 import collection.JavaConversions._
+import akka.event.LoggingAdapter
 
 trait AsyncBaseUtils {
 
@@ -19,6 +20,8 @@ trait AsyncBaseUtils {
 
   implicit val settings: PluginPersistenceSettings
   implicit val executionContext: ExecutionContext
+  implicit val logger: LoggingAdapter
+
   def getTable: String
   def Table = Bytes.toBytes(getTable)
   def getFamily: String
@@ -73,7 +76,7 @@ trait AsyncBaseUtils {
   }
 }
 
-class SaltedScanner(client: HBaseClient, partitionCount: Int, table: Array[Byte], family: Array[Byte])(implicit val settings: PluginPersistenceSettings, implicit val executionContext: ExecutionContext) {
+class SaltedScanner(client: HBaseClient, partitionCount: Int, table: Array[Byte], family: Array[Byte])(implicit val settings: PluginPersistenceSettings, implicit val executionContext: ExecutionContext, implicit val logger: LoggingAdapter) {
   val scanners: Seq[Scanner] = for (part <- 0 until partitionCount) yield { newPlainScanner() }
 
   private def newPlainScanner() = {

@@ -9,6 +9,7 @@ import org.apache.hadoop.hbase.util.Bytes
 import scala.collection.immutable
 import scala.concurrent._
 import java.io.PrintWriter
+import akka.event.LoggingAdapter
 
 /**
  * Asyncronous HBase Journal.
@@ -20,6 +21,8 @@ class HBaseAsyncWriteJournal extends Actor with ActorLogging
     with HBaseAsyncRecovery {
 
   import RowTypeMarkers._
+
+  override implicit val logger: LoggingAdapter = log
 
   private lazy val config = context.system.settings.config
 

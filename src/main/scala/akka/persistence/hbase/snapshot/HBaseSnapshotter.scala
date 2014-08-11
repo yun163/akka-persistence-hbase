@@ -13,11 +13,14 @@ import scala.util.{ Failure, Success }
 import scala.concurrent.{ Promise, Future }
 import scala.collection.immutable
 import scala.collection.JavaConverters._
+import akka.event.LoggingAdapter
 
 class HBaseSnapshotter(val system: ActorSystem, val pluginPersistenceSettings: PluginPersistenceSettings, val client: HBaseClient) extends HadoopSnapshotter
     with AsyncBaseUtils with DeferredConversions {
 
   val log = system.log
+
+  override implicit val logger: LoggingAdapter = log
 
   implicit val settings = pluginPersistenceSettings
 

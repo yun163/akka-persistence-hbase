@@ -100,21 +100,22 @@ class HBaseAsyncJournalSpec extends TestKit(ActorSystem("test")) with ImplicitSe
     expectMsgAllOf(max = timeout, "b", 2L, true)
   }
 
-  it should "not replay permanently deleted messages" in {
-    val deleteProbe = TestProbe()
-    subscribeToDeletion(deleteProbe)
-
-    val processor1 = system.actorOf(Props(classOf[ProcessorA], "p3"))
-    processor1 ! Persistent("a")
-    processor1 ! Persistent("b")
-    expectMsgAllOf(max = timeout, "a", 1L, false)
-    expectMsgAllOf(max = timeout, "b", 2L, false)
-    processor1 ! Delete(1L, true)
-    awaitDeletion(deleteProbe)
-
-    system.actorOf(Props(classOf[ProcessorA], "p3"))
-    expectMsgAllOf("b", 2L, true)
-  }
+  // No need to delete message permanently, otherwise sequenceNr will not combine
+  //  it should "not replay permanently deleted messages" in {
+  //    val deleteProbe = TestProbe()
+  //    subscribeToDeletion(deleteProbe)
+  //
+  //    val processor1 = system.actorOf(Props(classOf[ProcessorA], "p3"))
+  //    processor1 ! Persistent("a")
+  //    processor1 ! Persistent("b")
+  //    expectMsgAllOf(max = timeout, "a", 1L, false)
+  //    expectMsgAllOf(max = timeout, "b", 2L, false)
+  //    processor1 ! Delete(1L, true)
+  //    awaitDeletion(deleteProbe)
+  //
+  //    system.actorOf(Props(classOf[ProcessorA], "p3"))
+  //    expectMsgAllOf("b", 2L, true)
+  //  }
 
   it should "write delivery confirmations" in {
     val confirmProbe = TestProbe()
