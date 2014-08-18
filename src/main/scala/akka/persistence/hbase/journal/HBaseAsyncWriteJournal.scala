@@ -77,8 +77,8 @@ class HBaseAsyncWriteJournal extends Actor with ActorLogging
     Future.sequence(fs) map {
       case _ =>
         val last = System.currentTimeMillis() - start
-        if (last < 3000) {
-          logger.info(s""" \n${">" * 15} confirm write last a long time for ${last}ms""")
+        if (last > 3000) {
+          logger.info(s""" \n${">" * 15} confirm write response slow with ${last}ms""")
         }
         flushWrites()
     }

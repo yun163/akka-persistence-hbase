@@ -78,7 +78,7 @@ trait HBaseAsyncRecovery extends AsyncRecovery {
               scanner.close()
               log.error(s"Replay ${processorId} failed by sequence gap at ${tryStartSeqNr} after ${replayGapRetry} times retry")
               return Future.failed(new Exception(s"Replay ${processorId} failed by sequence gap at ${tryStartSeqNr} after ${replayGapRetry} times retry"))
-//            return Future(0L)
+              //            return Future(0L)
             }
             tryStartSeqNr = callback(cols) + 1
           }
