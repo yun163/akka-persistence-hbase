@@ -70,11 +70,18 @@ class HBaseAsyncWriteJournal extends Actor with ActorLogging
 
   override def asyncWriteConfirmations(confirmations: immutable.Seq[PersistentConfirmation]): Future[Unit] = {
     // log.debug(s"AsyncWriteConfirmations for ${confirmations.size} messages")
-
+    val start = System.currentTimeMillis()
     val fs = confirmations map { confirm =>
       confirmAsync(confirm.processorId, confirm.sequenceNr, confirm.channelId)
     }
-    Future.sequence(fs) map { case _ => flushWrites() }
+    Future.sequence(fs) map {
+      case _ =>
+        val last = System.currentTimeMillis() - start
+        if (last < 3000) {
+          logger.info(s""" \n${">" * 15} confirm write last a long time for ${last}ms""")
+        }
+        flushWrites()
+    }
   }
 
   override def asyncDeleteMessages(messageIds: immutable.Seq[PersistentId], permanent: Boolean): Future[Unit] = {
