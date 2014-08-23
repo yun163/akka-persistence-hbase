@@ -75,24 +75,25 @@ trait HBaseAsyncRecovery extends AsyncRecovery {
             return go()
           } else {
             var meetGap: Boolean = false
+            var gapSeq: Long = 0L
             if (retryTimes >= replayGapRetry) {
-              log.error(s"Replay ${processorId} failed by sequence gap at ${tryStartSeqNr} after ${replayGapRetry} times retry")
               meetGap = true
+              gapSeq = tryStartSeqNr
               if (!skipGap) {
                 scanner.close()
-                return Future.failed(new Exception(s"Replay ${processorId} failed by sequence gap at ${tryStartSeqNr} after ${replayGapRetry} times retry"))
+                return Future.failed(new Exception(s"Replay failed [$processorId, $tryStartSeqNr, $replayGapRetry]"))
               }
               //            return Future(0L)
             }
+            tryStartSeqNr = callback(cols) + 1
             if (skipGap && meetGap) {
-              tryStartSeqNr += 1
-            } else {
-              tryStartSeqNr = callback(cols) + 1
+              log.error(s"Replay ${processorId} failed by sequence gap at ${gapSeq} after ${replayGapRetry} times retry, jump to first valid seq ${tryStartSeqNr - 1}")
             }
+            // re init to 0
+            retryTimes = 0
           }
         }
-        // re init to 0
-        retryTimes = 0
+
         go()
     }
 
