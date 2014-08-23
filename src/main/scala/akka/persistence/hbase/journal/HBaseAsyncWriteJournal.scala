@@ -37,6 +37,7 @@ class HBaseAsyncWriteJournal extends Actor with ActorLogging
   val exportSequenceFile: String = config.getString("akka.persistence.export-sequence.file")
   var printerWriter: java.io.PrintWriter = null
   val replayGapRetry: Int = config.getInt("akka.persistence.replay-gap-retry")
+  val skipGap: Boolean = config.getBoolean("akka.persistence.skip-gap")
 
   lazy val publishTestingEvents = settings.publishTestingEvents
 

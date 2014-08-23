@@ -74,7 +74,6 @@ trait HBaseAsyncRecovery extends AsyncRecovery {
             initScanner()
             return go()
           } else {
-            val skipGap: Boolean = false
             var meetGap: Boolean = false
             if (retryTimes >= replayGapRetry) {
               log.error(s"Replay ${processorId} failed by sequence gap at ${tryStartSeqNr} after ${replayGapRetry} times retry")
