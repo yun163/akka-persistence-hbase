@@ -22,7 +22,7 @@ trait HBaseAsyncRecovery extends AsyncRecovery {
 
   // TODO: can be improved to to N parallel scans for each "partition" we created, instead of one "big scan"
   override def asyncReplayMessages(processorId: String, fromSequenceNr: Long, toSequenceNr: Long, max: Long)(replayCallback: PersistentRepr => Unit): Future[Unit] = {
-    // log.debug(s"Async replay for processorId [$processorId], from sequenceNr: [$fromSequenceNr], to sequenceNr: [$toSequenceNr]")
+    //    log.info(s"Async replay for processorId [$processorId], from sequenceNr: [$fromSequenceNr], to sequenceNr: [$toSequenceNr]")
     var retryTimes: Int = 0
     var tryStartSeqNr: Long = if (fromSequenceNr <= 0) 1 else fromSequenceNr
     var scanner: SaltedScanner = null
@@ -53,12 +53,12 @@ trait HBaseAsyncRecovery extends AsyncRecovery {
 
     def handleRows(in: AnyRef): Future[Long] = in match {
       case null =>
-        // log.debug(s"replayAsync for processorId [$processorId] - finished!")
+        //        log.info(s"replayAsync for processorId [$processorId, $fromSequenceNr, $tryStartSeqNr] - finished!")
         scanner.close()
         Future(0L)
 
       case rows: AsyncBaseRows =>
-        // log.debug(s"replayAsync for processorId [$processorId] - got ${rows.size} rows...")
+        //        log.info(s"replayAsync for processorId [$processorId, $fromSequenceNr, $tryStartSeqNr] - got ${rows.size} rows...")
         for {
           row <- rows.asScala
           cols = row.asScala
@@ -97,7 +97,7 @@ trait HBaseAsyncRecovery extends AsyncRecovery {
         go()
     }
 
-    def go() = scanner.nextRows() flatMap handleRows
+    def go() = scanner.nextRows(tryStartSeqNr == fromSequenceNr) flatMap handleRows
 
     initScanner
     go()
@@ -106,7 +106,7 @@ trait HBaseAsyncRecovery extends AsyncRecovery {
   // TODO: make this multiple scans, on each partition instead of one big scan
   override def asyncReadHighestSequenceNr(processorId: String, fromSequenceNr: Long): Future[Long] = {
     // log.debug(s"Async read for highest sequence number for processorId: [$processorId] (hint, seek from  nr: [$fromSequenceNr])")
-
+    var tryStartSeqNr: Long = if (fromSequenceNr <= 0) 1 else fromSequenceNr
     val scanner = newSaltedScanner(settings.partitionCount)
     scanner.setSaltedStartKeys(processorId, fromSequenceNr)
     scanner.setSaltedStopKeys(processorId, Long.MaxValue)
@@ -126,11 +126,13 @@ trait HBaseAsyncRecovery extends AsyncRecovery {
 
         go() map {
           reachedSeqNr =>
-            math.max(reachedSeqNr, maxSoFar)
+            val rNr = math.max(reachedSeqNr, maxSoFar)
+            tryStartSeqNr = rNr + 1
+            rNr
         }
     }
 
-    def go() = scanner.nextRows() flatMap handleRows
+    def go() = scanner.nextRows(tryStartSeqNr == fromSequenceNr) flatMap handleRows
 
     go() // map { i => println(s"HightestSequenceNr for $processorId is $i, fromSequenceNr = $fromSequenceNr"); i }
   }

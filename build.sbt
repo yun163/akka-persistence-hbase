@@ -2,13 +2,13 @@ organization := "com.coinport"
 
 name := "akka-persistence-hbase"
 
-version := "1.0.9-SNAPSHOT"
+version := "1.0.10-SNAPSHOT"
 
 scalaVersion := "2.10.4"
 
 val akkaVersion = "2.3.3"
 
-resolvers += "coinport-repo" at "http://192.168.0.105:8081/nexus/content/groups/public"
+resolvers += "coinport-repo" at "https://nexus.coinport.com/nexus/content/groups/public"
 
 resolvers += "maven2" at "http://repo1.maven.org/maven2"
 
@@ -39,12 +39,13 @@ pomIncludeRepository := { _ => false }
 
 credentials += Credentials(Path.userHome / ".ivy2" / ".credentials")
 
-publishTo <<= (version) { version: String =>
-  val nexus = "http://192.168.0.105:8081/nexus/content/repositories/"
-  if (version.trim.endsWith("SNAPSHOT"))
-    Some("snapshots" at nexus + "snapshots/")
-  else
-    Some("releases"  at nexus + "releases/")
+publishTo <<= (version) {
+  version: String =>
+    val nexus = "https://nexus.coinport.com/nexus/content/repositories/"
+      if (version.trim.endsWith("SNAPSHOT"))
+        Some("snapshots" at nexus + "snapshots/")
+      else
+        Some("releases"  at nexus + "releases/")
 }
 
 scalariformSettings

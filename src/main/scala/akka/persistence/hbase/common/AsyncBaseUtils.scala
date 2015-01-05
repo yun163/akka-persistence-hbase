@@ -78,7 +78,8 @@ trait AsyncBaseUtils {
 
 class SaltedScanner(client: HBaseClient, partitionCount: Int, table: Array[Byte], family: Array[Byte])(implicit val settings: PluginPersistenceSettings, implicit val executionContext: ExecutionContext, implicit val logger: LoggingAdapter) {
   val scanners: Seq[Scanner] = for (part <- 0 until partitionCount) yield { newPlainScanner() }
-
+  var innerStartNr: Long = 0L
+  var innerProcessorId: String = ""
   private def newPlainScanner() = {
     val scanner = client.newScanner(table)
     scanner.setFamily(family)
@@ -86,10 +87,12 @@ class SaltedScanner(client: HBaseClient, partitionCount: Int, table: Array[Byte]
   }
 
   def setSaltedStartKeys(processorId: String, startSequenceNr: Long) {
+    innerStartNr = startSequenceNr
     for (part <- 0 until partitionCount) scanners(part).setStartKey(SaltedRowKey(processorId, startSequenceNr, part).toBytes)
   }
 
   def setSaltedStopKeys(processorId: String, stopSequenceNr: Long) {
+    this.innerProcessorId = processorId
     for (part <- 0 until partitionCount) scanners(part).setStopKey(SaltedRowKey(processorId, stopSequenceNr, part).toBytes)
   }
 
@@ -101,8 +104,8 @@ class SaltedScanner(client: HBaseClient, partitionCount: Int, table: Array[Byte]
     for (part <- 0 until partitionCount) scanners(part).setMaxNumRows(batchSize)
   }
 
-  private def innerNextRows(sanner: Scanner): Future[AsyncBaseRows] = {
-    sanner.nextRows()
+  private def innerNextRows(scanner: Scanner): Future[AsyncBaseRows] = {
+    scanner.nextRows()
   }
 
   def nextRows(nrows: Int): Future[AsyncBaseRows] = {
@@ -110,34 +113,64 @@ class SaltedScanner(client: HBaseClient, partitionCount: Int, table: Array[Byte]
     nextRows()
   }
 
-  def nextRows(): Future[AsyncBaseRows] = {
-    val futures =
-      (0 until partitionCount) map {
-        part =>
-          innerNextRows(scanners(part))
-      }
-    Future.sequence(futures) map {
-      case rowsList: Seq[AsyncBaseRows] =>
-        val list = new AsyncBaseRows
-        if (rowsList != null && rowsList.size > 0) {
-          for (part <- 0 until partitionCount) {
-            if (rowsList(part) != null && rowsList(part).size() > 0) {
-              list.addAll(rowsList(part))
+  def nextRows(isStart: Boolean = false): Future[AsyncBaseRows] = {
+    val startPart = ((partitionCount + innerStartNr - 1) % partitionCount).toInt
+    val futures = isStart match {
+      case true =>
+        innerNextRows(scanners(startPart)) map {
+          case rows: AsyncBaseRows if rows.nonEmpty =>
+            //            logger.info(s"nextRows for $innerProcessorId, $isStart, ${rows.size}")
+            (0 until partitionCount) map {
+              part =>
+                if (part == startPart)
+                  Future(rows)
+                else
+                  innerNextRows(scanners(part))
             }
-          }
+          case _ =>
+            //            logger.info(s"nextRows for $innerProcessorId, $isStart, get no rows")
+            (0 until partitionCount) map {
+              part =>
+                Future(new AsyncBaseRows)
+            }
         }
-        if (list.isEmpty) {
-          null
-        } else {
-          val rows: Seq[RowWrapper] = list map { row => RowWrapper(row) }
-          val rows1 = rows.toArray
-          Sorting.quickSort(rows1)
-          val arr = new AsyncBaseRows
-          rows1.foreach(wrapper => arr.add(wrapper.row))
-          //          renderList(arr)
-          arr
+      case _ =>
+        Future(null) map {
+          f =>
+            //            logger.info(s"nextRows for $innerProcessorId, $isStart")
+            (0 until partitionCount) map {
+              part =>
+                innerNextRows(scanners(part))
+            }
         }
-      case _ => null
+    }
+    futures flatMap {
+      fs =>
+        Future.sequence(fs) map {
+          case rowsList: Seq[AsyncBaseRows] =>
+            val list = new AsyncBaseRows
+            if (rowsList != null && rowsList.size > 0) {
+              for (part <- 0 until partitionCount) {
+                if (rowsList(part) != null && rowsList(part).size() > 0) {
+                  list.addAll(rowsList(part))
+                }
+              }
+            }
+            if (list.isEmpty) {
+              null
+            } else {
+              val rows: Seq[RowWrapper] = list map {
+                row => RowWrapper(row)
+              }
+              val rows1 = rows.toArray
+              Sorting.quickSort(rows1)
+              val arr = new AsyncBaseRows
+              rows1.foreach(wrapper => arr.add(wrapper.row))
+              //  renderList(arr)
+              arr
+            }
+          case _ => null
+        }
     }
   }
 
