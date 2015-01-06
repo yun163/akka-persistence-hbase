@@ -33,6 +33,8 @@ publishMavenStyle := true
 
 publishArtifact in (Compile, packageDoc) := false
 
+publishArtifact in (Compile, packageSrc) := false
+
 publishArtifact in Test := false
 
 pomIncludeRepository := { _ => false }
