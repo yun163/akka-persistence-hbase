@@ -77,9 +77,14 @@ trait AsyncBaseUtils {
 }
 
 class SaltedScanner(client: HBaseClient, partitionCount: Int, table: Array[Byte], family: Array[Byte])(implicit val settings: PluginPersistenceSettings, implicit val executionContext: ExecutionContext, implicit val logger: LoggingAdapter) {
-  val scanners: Seq[Scanner] = for (part <- 0 until partitionCount) yield { newPlainScanner() }
+  val scanners: Seq[Scanner] = for (part <- 0 until partitionCount) yield {
+    newPlainScanner()
+  }
+  val TRY_STEP = 3
+  val CHANCE_THRESHOLD = 10
   var innerStartNr: Long = 0L
   var innerProcessorId: String = ""
+
   private def newPlainScanner() = {
     val scanner = client.newScanner(table)
     scanner.setFamily(family)
@@ -114,21 +119,43 @@ class SaltedScanner(client: HBaseClient, partitionCount: Int, table: Array[Byte]
   }
 
   def nextRows(isStart: Boolean = false): Future[AsyncBaseRows] = {
-    val startPart = ((partitionCount + innerStartNr - 1) % partitionCount).toInt
     val futures = isStart match {
+      // isStart true means this this the first query for the startSeqNr
+      // check first whether there is event at the first partition,
+      // if not exists event, will no need to query other partitions
       case true =>
-        innerNextRows(scanners(startPart)) map {
+        // try multi partition by chance to avoid first event missed result in replay failed,
+        // as first event miss condition looks like no more events left, but the fact is not
+        val byChance = ((new scala.util.Random()).nextInt() % CHANCE_THRESHOLD) == 1
+        val startParts: Seq[Int] =
+          0 until (if (byChance) TRY_STEP else 1) map {
+            i =>
+              ((partitionCount + innerStartNr + i - 1) % partitionCount).toInt
+          }
+        val tryResults = (0 until startParts.size) map {
+          i =>
+            innerNextRows(scanners(startParts(i)))
+        }
+        sequenceFutures(tryResults) map {
           case rows: AsyncBaseRows if rows.nonEmpty =>
-            //            logger.info(s"nextRows for $innerProcessorId, $isStart, ${rows.size}")
+            //            logger.info(s"nextRows for $innerProcessorId, $isStart, $byChance, $startParts get ${rows.size()} rows")
+            val partsSet = startParts.toSet
+            var returnTrys = false
             (0 until partitionCount) map {
               part =>
-                if (part == startPart)
-                  Future(rows)
-                else
+                if (partsSet.contains(part)) {
+                  if (!returnTrys) {
+                    returnTrys = true
+                    Future(rows)
+                  } else {
+                    Future(new AsyncBaseRows)
+                  }
+                } else {
                   innerNextRows(scanners(part))
+                }
             }
           case _ =>
-            //            logger.info(s"nextRows for $innerProcessorId, $isStart, get no rows")
+            //            logger.info(s"nextRows for $innerProcessorId, $isStart, $byChance, $startParts get no rows")
             (0 until partitionCount) map {
               part =>
                 Future(new AsyncBaseRows)
@@ -146,36 +173,42 @@ class SaltedScanner(client: HBaseClient, partitionCount: Int, table: Array[Byte]
     }
     futures flatMap {
       fs =>
-        Future.sequence(fs) map {
-          case rowsList: Seq[AsyncBaseRows] =>
-            val list = new AsyncBaseRows
-            if (rowsList != null && rowsList.size > 0) {
-              for (part <- 0 until partitionCount) {
-                if (rowsList(part) != null && rowsList(part).size() > 0) {
-                  list.addAll(rowsList(part))
-                }
-              }
-            }
-            if (list.isEmpty) {
-              null
-            } else {
-              val rows: Seq[RowWrapper] = list map {
-                row => RowWrapper(row)
-              }
-              val rows1 = rows.toArray
-              Sorting.quickSort(rows1)
-              val arr = new AsyncBaseRows
-              rows1.foreach(wrapper => arr.add(wrapper.row))
-              //  renderList(arr)
-              arr
-            }
-          case _ => null
-        }
+        sequenceFutures(fs)
     }
   }
 
   def close() {
-    scanners map { _.close() }
+    scanners map {
+      _.close()
+    }
+  }
+
+  private def sequenceFutures(fs: Seq[Future[AsyncBaseRows]]): Future[AsyncBaseRows] = {
+    Future.sequence(fs) map {
+      case rowsList: Seq[AsyncBaseRows] =>
+        val list = new AsyncBaseRows
+        if (rowsList != null && rowsList.size > 0) {
+          for (part <- 0 until rowsList.size) {
+            if (rowsList(part) != null && rowsList(part).size() > 0) {
+              list.addAll(rowsList(part))
+            }
+          }
+        }
+        if (list.isEmpty) {
+          null
+        } else {
+          val rows: Seq[RowWrapper] = list map {
+            row => RowWrapper(row)
+          }
+          val rows1 = rows.toArray
+          Sorting.quickSort(rows1)
+          val arr = new AsyncBaseRows
+          rows1.foreach(wrapper => arr.add(wrapper.row))
+          //  renderList(arr)
+          arr
+        }
+      case _ => null
+    }
   }
 
   private def renderList(rows: AsyncBaseRows) {
@@ -203,8 +236,9 @@ class SaltedScanner(client: HBaseClient, partitionCount: Int, table: Array[Byte]
   }
 
   def findColumn(columns: Seq[KeyValue], qualifier: Array[Byte]): KeyValue = {
-    columns find { kv =>
-      ju.Arrays.equals(kv.qualifier, qualifier)
+    columns find {
+      kv =>
+        ju.Arrays.equals(kv.qualifier, qualifier)
     } getOrElse {
       throw new RuntimeException(s"Unable to find [${Bytes.toString(qualifier)}}] field from: ${columns.map(kv => Bytes.toString(kv.qualifier))}")
     }
