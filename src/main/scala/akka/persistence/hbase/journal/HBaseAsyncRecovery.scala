@@ -105,7 +105,7 @@ trait HBaseAsyncRecovery extends AsyncRecovery {
 
   // TODO: make this multiple scans, on each partition instead of one big scan
   override def asyncReadHighestSequenceNr(processorId: String, fromSequenceNr: Long): Future[Long] = {
-    // log.debug(s"Async read for highest sequence number for processorId: [$processorId] (hint, seek from  nr: [$fromSequenceNr])")
+    // log.info(s"Async read for highest sequence number for processorId: [$processorId] (hint, seek from  nr: [$fromSequenceNr])")
     var tryStartSeqNr: Long = if (fromSequenceNr <= 0) 1 else fromSequenceNr
     val scanner = newSaltedScanner(settings.partitionCount)
     scanner.setSaltedStartKeys(processorId, fromSequenceNr)
@@ -183,9 +183,10 @@ trait HBaseAsyncRecovery extends AsyncRecovery {
   // end of async recovery plugin impl
 
   private def sequenceNr(columns: mutable.Buffer[KeyValue]): Long = {
-    val messageKeyValue = findColumn(columns, Message)
-    val msg = persistentFromBytes(messageKeyValue.value)
-    msg.sequenceNr
+    //    val messageKeyValue = findColumn(columns, Message)
+    //    val msg = persistentFromBytes(messageKeyValue.value)
+    //    msg.sequenceNr
+    Bytes.toLong(findColumn(columns, SequenceNr).value)
   }
 
 }
