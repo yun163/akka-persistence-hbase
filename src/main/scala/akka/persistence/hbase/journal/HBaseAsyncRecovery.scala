@@ -197,7 +197,7 @@ trait HBaseAsyncRecovery extends AsyncRecovery {
     val messageKeyValue = findColumn(columns, Message)
     val msg = persistentFromBytes(messageKeyValue.value)
     msg.sequenceNr
-    Bytes.toLong(findColumn(columns, SequenceNr).value)
+    // Bytes.toLong(findColumn(columns, SequenceNr).value)
   }
 
 }
