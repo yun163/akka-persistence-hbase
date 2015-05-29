@@ -194,9 +194,9 @@ trait HBaseAsyncRecovery extends AsyncRecovery {
   // end of async recovery plugin impl
 
   private def sequenceNr(columns: mutable.Buffer[KeyValue]): Long = {
-    //    val messageKeyValue = findColumn(columns, Message)
-    //    val msg = persistentFromBytes(messageKeyValue.value)
-    //    msg.sequenceNr
+    val messageKeyValue = findColumn(columns, Message)
+    val msg = persistentFromBytes(messageKeyValue.value)
+    msg.sequenceNr
     Bytes.toLong(findColumn(columns, SequenceNr).value)
   }
 
