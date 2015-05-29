@@ -41,7 +41,7 @@ class HBaseSnapshotter(val system: ActorSystem, val pluginPersistenceSettings: P
 
   def loadAsync(processorId: String, criteria: SnapshotSelectionCriteria): Future[Option[SelectedSnapshot]] = {
     // log.debug("Loading async for processorId: [{}] on criteria: {}", processorId, criteria)
-    val scanner = newSaltedScanner(settings.partitionCount)
+    val scanner = newSaltedScanner(settings.partitionCount, serialization)
     val SnapshotSelectionCriteria(maxSequenceNr, maxTimestamp) = criteria
     scanner.setSaltedStartKeys(processorId, 1)
     scanner.setSaltedStopKeys(processorId, maxSequenceNr)
@@ -115,7 +115,7 @@ class HBaseSnapshotter(val system: ActorSystem, val pluginPersistenceSettings: P
   def delete(processorId: String, criteria: SnapshotSelectionCriteria): Unit = {
     // log.debug("Deleting processorId: [{}], criteria: {}", processorId, criteria)
 
-    val scanner = newSaltedScanner(settings.partitionCount)
+    val scanner = newSaltedScanner(settings.partitionCount, serialization)
 
     scanner.setSaltedStartKeys(processorId, 1)
     scanner.setSaltedStopKeys(processorId, criteria.maxSequenceNr)

@@ -102,7 +102,7 @@ class HBaseAsyncWriteJournal extends Actor with ActorLogging
     // log.debug(s"AsyncDeleteMessagesTo for processorId: [$processorId] to sequenceNr: $toSequenceNr, premanent: $permanent")
     val doDelete = deleteFunctionFor(permanent)
 
-    val scanner = newSaltedScanner(settings.partitionCount)
+    val scanner = newSaltedScanner(settings.partitionCount, serialization)
     scanner.setSaltedStartKeys(processorId, 1)
     scanner.setSaltedStopKeys(processorId, RowKey.toSequenceNr(toSequenceNr))
     scanner.setMaxNumRows(settings.scanBatchSize)

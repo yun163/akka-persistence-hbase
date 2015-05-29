@@ -1,7 +1,6 @@
 package akka.persistence.hbase.common
 
 import akka.persistence.hbase.common.Columns._
-import akka.persistence.hbase.journal.PluginPersistenceSettings
 import akka.persistence.hbase.journal.RowTypeMarkers._
 import java.{ util => ju }
 import java.util.{ ArrayList => JArrayList }
@@ -13,7 +12,8 @@ import scala.util.Sorting
 import DeferredConversions._
 import collection.JavaConversions._
 import akka.event.LoggingAdapter
-
+import akka.persistence.hbase.journal.PluginPersistenceSettings
+import akka.persistence.{ Persistent, PersistentRepr }
 trait AsyncBaseUtils {
 
   val client: HBaseClient
@@ -71,15 +71,20 @@ trait AsyncBaseUtils {
     scanner
   }
 
-  protected def newSaltedScanner(partitionCount: Int) = {
-    new SaltedScanner(client, partitionCount, Table, Family)
+  protected def newSaltedScanner(partitionCount: Int, serialization: EncryptingSerializationExtension) = {
+    new SaltedScanner(serialization, client, partitionCount, Table, Family)
   }
 }
 
-class SaltedScanner(client: HBaseClient, partitionCount: Int, table: Array[Byte], family: Array[Byte])(implicit val settings: PluginPersistenceSettings, implicit val executionContext: ExecutionContext, implicit val logger: LoggingAdapter) {
+class SaltedScanner(serialization: EncryptingSerializationExtension, client: HBaseClient, partitionCount: Int, table: Array[Byte], family: Array[Byte])(implicit val settings: PluginPersistenceSettings, implicit val executionContext: ExecutionContext, implicit val logger: LoggingAdapter) {
+
+  def persistentFromBytes(bytes: Array[Byte]): PersistentRepr =
+    serialization.deserialize(bytes, classOf[PersistentRepr])
+
   val scanners: Seq[Scanner] = for (part <- 0 until partitionCount) yield {
     newPlainScanner()
   }
+
   val TRY_STEP = 3
   val CHANCE_THRESHOLD = 10
   var innerStartNr: Long = 0L
@@ -197,15 +202,20 @@ class SaltedScanner(client: HBaseClient, partitionCount: Int, table: Array[Byte]
         if (list.isEmpty) {
           null
         } else {
-          val rows: Seq[RowWrapper] = list map {
-            row => RowWrapper(row)
+          val resList = list.filter(checkValidRow)
+          if (resList.isEmpty) {
+            null
+          } else {
+            val rows: Seq[RowWrapper] = resList map {
+              row => RowWrapper(row)
+            }
+            val rows1 = rows.toArray
+            Sorting.quickSort(rows1)
+            val arr = new AsyncBaseRows
+            rows1.foreach(wrapper => arr.add(wrapper.row))
+            //  renderList(arr)
+            arr
           }
-          val rows1 = rows.toArray
-          Sorting.quickSort(rows1)
-          val arr = new AsyncBaseRows
-          rows1.foreach(wrapper => arr.add(wrapper.row))
-          //  renderList(arr)
-          arr
         }
       case _ => null
     }
@@ -244,8 +254,30 @@ class SaltedScanner(client: HBaseClient, partitionCount: Int, table: Array[Byte]
     }
   }
 
-  def getSequenceNr(cols: Seq[KeyValue]): Long = {
-    Bytes.toLong(findColumn(cols, SequenceNr).value)
-  }
-}
+  // def getSequenceNr(cols: Seq[KeyValue]): Long = {
+  //   Bytes.toLong(findColumn(cols, SequenceNr).value)
+  // }
 
+  private def getSequenceNr(columns: Seq[KeyValue]): Long = {
+    val messageKeyValue = findColumn(columns, Message)
+    val msg = persistentFromBytes(messageKeyValue.value)
+    msg.sequenceNr
+  }
+
+  private def checkValidRow(columns: java.util.ArrayList[KeyValue]): Boolean = {
+    if (columns.size < 4)
+      return false
+    Seq(Columns.ProcessorId, Columns.SequenceNr, Columns.Marker, Columns.Message).filter {
+      qf: Array[Byte] =>
+        columns.toList.filter {
+          kv: KeyValue =>
+            ju.Arrays.equals(kv.qualifier, qf)
+        }.isEmpty
+    }.isEmpty
+  }
+
+  // def checkValidRow(columns: java.util.ArrayList[KeyValue]): Boolean =
+  //   columns.toList.find(kv =>
+  //     ju.Arrays.equals(kv.qualifier, Columns.Message)
+  //   ).isDefined
+}
