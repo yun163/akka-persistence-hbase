@@ -51,7 +51,7 @@ class SimplePerfSpec extends TestKit(ActorSystem("test")) with FlatSpecLike
     val writer = system.actorOf(Props(classOf[Writer], messagesNr, "w-1"))
 
     // when
-    val stopwatch = (new Stopwatch).start()
+    val stopwatch = Stopwatch.createUnstarted().start()
 
     var i = 1
     while (i <= messagesNr) {
@@ -67,7 +67,7 @@ class SimplePerfSpec extends TestKit(ActorSystem("test")) with FlatSpecLike
     system.eventStream.unsubscribe(probe.ref)
 
     info(s"Sending/persisting $messagesNr messages took: $stopwatch time")
-    info(s"This is ${messagesNr / stopwatch.elapsedTime(TimeUnit.SECONDS)} m/s")
+    info(s"This is ${messagesNr / stopwatch.elapsed(TimeUnit.SECONDS)} m/s")
 
   }
 
@@ -78,7 +78,7 @@ class SimplePerfSpec extends TestKit(ActorSystem("test")) with FlatSpecLike
   }
 
   def timed(block: => Unit): Stopwatch = {
-    val stopwatch = (new Stopwatch).start()
+    val stopwatch = Stopwatch.createUnstarted().start()
     block
     stopwatch.stop()
   }
